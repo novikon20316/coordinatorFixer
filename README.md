@@ -21,10 +21,16 @@ The login screen has "המשך עם Google" / "המשך עם Apple" buttons and 
 1. **Google** - Firebase Console → Authentication → Sign-in method → enable **Google**. This auto-creates an OAuth "Web client" for the project.
    - Web needs nothing further - Firebase's `signInWithPopup` picks it up automatically.
    - Mobile needs that Web client's ID: Firebase Console → Authentication → Sign-in method → Google → "Web SDK configuration" → copy the Web client ID → set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `mobile/.env`.
-2. **Apple** (iOS only) - this one needs an Apple Developer Program membership, which only you can set up:
-   - In the [Apple Developer portal](https://developer.apple.com/account): enable the "Sign In with Apple" capability on the app's identifier, create a Services ID, and create a Sign In with Apple key (note the Team ID and Key ID).
-   - Firebase Console → Authentication → Sign-in method → enable **Apple**, and paste in the Team ID, Key ID, and the private key file from that step.
-   - `mobile/app.json` already sets `ios.usesAppleSignIn: true` and the `expo-apple-authentication` plugin - but that native module (and therefore testing the Apple button) requires an EAS/custom dev-client build, not plain Expo Go.
+2. **Apple** (iOS only) - needs an Apple Developer Program membership ($99/year), which only you can set up. The app's bundle identifier is `com.coordinatorfixer.app` (`mobile/app.json` - change it now if you'd rather use something else, since it's effectively permanent once you first submit to the App Store).
+
+   At [developer.apple.com/account](https://developer.apple.com/account), under **Certificates, Identifiers & Profiles**:
+   1. **Identifiers → "+" → App IDs** - register `com.coordinatorfixer.app` (if it's not there yet from a prior EAS run) and check the **Sign In with Apple** capability on it, "Enable as a primary App ID".
+   2. **Identifiers → "+" → Services IDs** - create one, e.g. identifier `com.coordinatorfixer.app.web`, description "CoordinatorFixer". Enable **Sign In with Apple** on it, click Configure, and set the domain/return URL to *exactly* what Firebase shows you in the next step (do that step first if the Services ID form is open in another tab, so you have the real URL instead of guessing).
+   3. **Keys → "+"** - name it, enable **Sign In with Apple**, associate it with the App ID from step 1, register, then **download the `.p8` file immediately** - Apple only lets you download it once. Note the **Key ID** shown on this page.
+   4. Your **Team ID** is on the account's Membership page (top-right area, or Membership Details) - a 10-character code.
+   - Then: Firebase Console → Authentication → Sign-in method → enable **Apple**, and fill in the Services ID (from step 2), Team ID, Key ID, and upload the `.p8` file (all from above). Firebase shows the exact OAuth redirect URL to use in step 2 right on this screen.
+   - `mobile/app.json` already sets `ios.usesAppleSignIn: true` and the `expo-apple-authentication` plugin - but that native module (and therefore testing the Apple button on a phone) requires an EAS/custom dev-client build, not plain Expo Go: `npx eas build --platform ios --profile development` (needs an Expo account, `eas-cli`, and this same Apple Developer membership - EAS will prompt to create/select the matching provisioning profile).
+   - The web app's Apple button works via `signInWithPopup` once the Firebase provider above is configured - no EAS/native build needed for web.
 
 Either provider signing a user in who has no `users/{uid}` Firestore profile (i.e. an admin never created their account) is handled - they see a clear "not registered" screen instead of a broken dashboard, since Firestore rules already deny them read access to everything.
 
