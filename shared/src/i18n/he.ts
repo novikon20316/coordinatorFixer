@@ -34,6 +34,12 @@ export const he = {
     resetSuccess: "הסיסמה עודכנה בהצלחה. ניתן להתחבר כעת",
     invalidOrExpiredLink: "הקישור אינו תקין או שפג תוקפו",
     requestNewLink: "בקש קישור חדש",
+    or: "או",
+    continueWithGoogle: "המשך עם Google",
+    continueWithApple: "המשך עם Apple",
+    accountExistsDifferentMethod: "כתובת האימייל הזו כבר רשומה עם שיטת התחברות אחרת",
+    socialSignInFailed: "ההתחברות נכשלה, נסה שוב",
+    noAccount: "החשבון הזה אינו רשום במערכת - פנה למנהל המערכת",
   },
 
   menu: {

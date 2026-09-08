@@ -12,19 +12,25 @@ See [SECURITY.md](SECURITY.md) for the full access-control model and a checklist
 
 ## Status
 
-Linked to the `coordinatorfixer` Firebase project (Firestore in `me-west1`, delete protection on). Local `.env` files for `server`/`web`/`mobile` are already populated (gitignored - see `*.env.example` in each package if you need to regenerate them).
+Linked to the `coordinatorfixer` Firebase project (Firestore in `me-west1`, delete protection on). Local `.env` files for `server`/`web`/`mobile` are already populated (gitignored - see `*.env.example` in each package if you need to regenerate them). Email/Password sign-in is enabled and the `system_admin` account (`dor.novik15@gmail.com`) is bootstrapped - see `server/scripts/bootstrap-admin.ts` if a project ever needs a fresh admin.
 
-**One manual step left before login works:** open the [Firebase Console](https://console.firebase.google.com/u/0/project/coordinatorfixer/authentication/providers) → Authentication → Sign-in method → enable **Email/Password**. This can't be done from the CLI/Admin SDK. Once it's on, run:
+## Google & Apple sign-in
 
-```bash
-cd server && npx tsx scripts/bootstrap-admin.ts dor.novik15@gmail.com
-```
+The login screen has "המשך עם Google" / "המשך עם Apple" buttons and the client-side code (web + mobile) is fully wired up, but each provider needs one manual step in a console before it actually works - neither is scriptable via the Firebase/Google Cloud CLI:
 
-then use "שכחתי סיסמה" (Forgot Password) on the login screen with that email to set your own password - the bootstrap script never sets or sees one.
+1. **Google** - Firebase Console → Authentication → Sign-in method → enable **Google**. This auto-creates an OAuth "Web client" for the project.
+   - Web needs nothing further - Firebase's `signInWithPopup` picks it up automatically.
+   - Mobile needs that Web client's ID: Firebase Console → Authentication → Sign-in method → Google → "Web SDK configuration" → copy the Web client ID → set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `mobile/.env`.
+2. **Apple** (iOS only) - this one needs an Apple Developer Program membership, which only you can set up:
+   - In the [Apple Developer portal](https://developer.apple.com/account): enable the "Sign In with Apple" capability on the app's identifier, create a Services ID, and create a Sign In with Apple key (note the Team ID and Key ID).
+   - Firebase Console → Authentication → Sign-in method → enable **Apple**, and paste in the Team ID, Key ID, and the private key file from that step.
+   - `mobile/app.json` already sets `ios.usesAppleSignIn: true` and the `expo-apple-authentication` plugin - but that native module (and therefore testing the Apple button) requires an EAS/custom dev-client build, not plain Expo Go.
+
+Either provider signing a user in who has no `users/{uid}` Firestore profile (i.e. an admin never created their account) is handled - they see a clear "not registered" screen instead of a broken dashboard, since Firestore rules already deny them read access to everything.
 
 ## Domain model
 
-A **student** record belongs to a **faculty** (only `data_science` exists for now, more will be added later) and a **track**:
+A **student** record belongs to a **faculty** (the dashboard itself only handles `data_science` for now, though coordinators can belong to any of the college's 7 real faculties - see below) and a **track**:
 
 | Track key    | Hebrew label     |
 |--------------|-------------------|
@@ -40,7 +46,7 @@ Each student has a **status**:
 | `REJECTED`   | לא התקבל                       | GPA below 85, or no relevant background |
 | `CANCELED`   | בוטל על ידי התלמיד              | Student withdrew, or the coordinator canceled the application |
 
-Roles: **admin** (single system owner) and **coordinator** (everyone else). Role is stored server-side in the `users` Firestore collection and is never trusted from the client.
+Roles: **admin** (single system owner) and **coordinator** (everyone else, each assigned to one faculty). Role and faculty are stored server-side in the `users` Firestore collection and never trusted from the client. The admin manages coordinator accounts from the "ניהול רכזים" screen (web: `/coordinators`, mobile: same menu item) - creates the account, assigns its faculty, and can disable it later without deleting it.
 
 ## Getting started
 

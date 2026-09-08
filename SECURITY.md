@@ -15,10 +15,18 @@ does.
 
 ## Access model
 
-- **Authentication**: Firebase Auth (email/password). No client-side signup -
-  the single `system_admin` account is bootstrapped once
-  (`server/scripts/bootstrap-admin.ts`), and every `coordinator` account is
-  created by an admin via `POST /api/users`.
+- **Authentication**: Firebase Auth (email/password, plus optional Google/Apple
+  sign-in - see README's "Google & Apple sign-in" section for the console
+  setup each needs). No client-side signup for the underlying app account -
+  the single `system_admin` is bootstrapped once
+  (`server/scripts/bootstrap-admin.ts`), and every `coordinator` is created by
+  an admin via `POST /api/users` with a `facultyId`. Google/Apple sign-in
+  reuses that same account when the emails match (Firebase's default
+  provider-linking behavior) - it is not itself a way to create a new app
+  account. A Firebase Auth session with no matching `users/{uid}` profile
+  (e.g. someone signs in with Google using an email an admin never
+  provisioned) is shown a "not registered" screen; Firestore rules already
+  deny it read access to everything else.
 - **Roles**: `ADMIN` (one person) and `COORDINATOR` (everyone else), stored
   server-side in `users/{uid}` in Firestore. A user's role is never read from
   anything the client sends - the server and the Firestore rules both
@@ -65,6 +73,16 @@ does.
   / `keys delete` for `firebase-adminsdk-fbsvc@coordinatorfixer.iam.gserviceaccount.com`,
   then generate a new one.
 
+## Dev scripts (`server/scripts/`)
+
+`dev-get-id-token.ts` mints a real ID token for any uid (used to test protected
+API routes without knowing that account's password) and `dev-delete-user.ts`
+deletes an account outright. Both require the same service account key
+everything else here does, so they don't grant any access beyond what
+`server/.env` already has - but treat them like the bootstrap script: local
+dev/testing tools, not something to expose or run against production data
+without thinking about it first.
+
 ## Firestore project (`coordinatorfixer`)
 
 - Region: `me-west1` (Tel Aviv) - lowest latency and keeps student data
@@ -77,10 +95,14 @@ does.
 
 ## Before this handles real student data
 
-- [ ] Enable Email/Password sign-in in the Firebase Console (Authentication →
-      Sign-in method) - required once; the Admin SDK can't do this itself.
-- [ ] Run `server/scripts/bootstrap-admin.ts <email>` for the real admin
-      account, then set a real password via the app's "Forgot Password" flow.
+- [x] Enable Email/Password sign-in in the Firebase Console - done.
+- [x] Run `server/scripts/bootstrap-admin.ts <email>` for the real admin
+      account, then set a real password via the app's "Forgot Password" flow -
+      done for `dor.novik15@gmail.com`.
+- [ ] If Google/Apple sign-in should actually work (buttons are wired up but
+      inert until this is done): enable each provider in the Firebase
+      Console, and for Apple, complete the Apple Developer Portal setup
+      first (Services ID, Sign In with Apple key) - see README.
 - [ ] Set `CLIENT_ORIGINS` to the real deployed web URL (plus `TRUST_PROXY=1`
       if deployed behind Cloud Run/Render) instead of just localhost.
 - [ ] After any change to `firebase/firestore.rules`, deploy it:
