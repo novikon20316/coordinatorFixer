@@ -99,15 +99,25 @@ without thinking about it first.
 - [x] Run `server/scripts/bootstrap-admin.ts <email>` for the real admin
       account, then set a real password via the app's "Forgot Password" flow -
       done for `dor.novik15@gmail.com`.
-- [ ] If Google/Apple sign-in should actually work (buttons are wired up but
-      inert until this is done): enable each provider in the Firebase
-      Console, and for Apple, complete the Apple Developer Portal setup
-      first (Services ID, Sign In with Apple key) - see README.
+- [x] Google sign-in enabled in the Firebase Console; confirmed it links to
+      the existing account by email (same uid, both `password` and
+      `google.com` show up in that Auth user's `providerData`) rather than
+      creating a separate one.
+- [ ] Apple: still needs the Apple Developer Portal setup (Services ID, Sign
+      In with Apple key) before enabling the provider in Firebase - see
+      README. Only the account owner can do this step.
+- [x] `firebase deploy --only firestore:rules` - done 2026-09-08. **This was
+      missed for the entire time between writing firebase/firestore.rules and
+      this date** - the project ran on Firestore's implicit deny-all default
+      the whole time, which is exactly why every client-side Firestore read
+      (the dashboard, and the "not registered" screen wrongly showing for the
+      actual admin after Google sign-in) was silently broken despite the repo
+      always having the intended rules. **Re-deploy after every future change
+      to firebase/firestore.rules** - nothing enforces this automatically,
+      and a correct rules file sitting undeployed in the repo protects
+      nothing and looks identical to a correct one from `git log` alone.
 - [ ] Set `CLIENT_ORIGINS` to the real deployed web URL (plus `TRUST_PROXY=1`
       if deployed behind Cloud Run/Render) instead of just localhost.
-- [ ] After any change to `firebase/firestore.rules`, deploy it:
-      `firebase deploy --only firestore:rules` (`firebase use coordinatorfixer`
-      first). A rule change sitting only in this repo protects nothing.
 - [ ] Consider Firebase App Check on `web`/`mobile` - it stops a copied
       `apiKey` from being used outside this app's own clients to call
       Firestore or the API directly.

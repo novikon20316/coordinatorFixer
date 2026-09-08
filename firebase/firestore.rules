@@ -34,6 +34,8 @@ service cloud.firestore {
       return callerProfile().role;
     }
 
+    // Not called by any rule below yet (nothing is admin-only-read today) -
+    // kept ready for the first collection that needs it.
     function isAdmin() {
       return isActiveUser() && callerRole() == 'ADMIN';
     }
