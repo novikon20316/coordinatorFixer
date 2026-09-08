@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { UserRole } from "@admin-coordinator/shared";
+import { FACULTY_VALUES, Faculty, UserRole } from "@admin-coordinator/shared";
 import { auth, db } from "../config/firebase";
 
 const COLLECTION = "users";
@@ -14,21 +14,34 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
   }
 }
 
-/** Admin-only: create a coordinator account (Firebase Auth user + Firestore profile). */
+/**
+ * Admin-only: create a coordinator account (Firebase Auth user + Firestore
+ * profile). Always creates role COORDINATOR - there is deliberately no way
+ * to create another ADMIN through this app; that's a single, manually
+ * bootstrapped account (see scripts/bootstrap-admin.ts).
+ */
 export async function createUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password, displayName, role } = req.body as {
-      email: string;
-      password: string;
-      displayName: string;
-      role?: UserRole;
+    const { email, password, displayName, facultyId } = req.body as {
+      email?: string;
+      password?: string;
+      displayName?: string;
+      facultyId?: Faculty;
     };
+
+    if (!email || !password || !displayName || !facultyId) {
+      return res.status(400).json({ error: "email, password, displayName and facultyId are required" });
+    }
+    if (!FACULTY_VALUES.includes(facultyId)) {
+      return res.status(400).json({ error: "Invalid facultyId" });
+    }
 
     const userRecord = await auth!.createUser({ email, password, displayName });
     const profile = {
       email,
       displayName,
-      role: role ?? UserRole.COORDINATOR,
+      role: UserRole.COORDINATOR,
+      facultyId,
       isActive: true,
       createdAt: new Date().toISOString(),
     };

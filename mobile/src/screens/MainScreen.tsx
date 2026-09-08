@@ -6,11 +6,13 @@ import { AppMenu } from "../components/AppMenu";
 import { MenuKey } from "../navigation/types";
 import { DashboardScreen } from "./DashboardScreen";
 import { PlaceholderScreen } from "./PlaceholderScreen";
+import { CoordinatorsScreen } from "./CoordinatorsScreen";
 
 const TITLES: Record<MenuKey, string> = {
   overview: he.menu.overview,
   reports: he.menu.reports,
   changeStatus: he.menu.changeStatus,
+  coordinators: he.menu.coordinators,
 };
 
 export function MainScreen() {
@@ -24,6 +26,7 @@ export function MainScreen() {
       {active === "overview" && <DashboardScreen />}
       {active === "reports" && <PlaceholderScreen title={he.menu.reports} />}
       {active === "changeStatus" && <PlaceholderScreen title={he.menu.changeStatus} />}
+      {active === "coordinators" && <CoordinatorsScreen />}
 
       <AppMenu
         visible={menuVisible}

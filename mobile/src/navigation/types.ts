@@ -4,4 +4,4 @@ export type RootStackParamList = {
   Main: undefined;
 };
 
-export type MenuKey = "overview" | "reports" | "changeStatus";
+export type MenuKey = "overview" | "reports" | "changeStatus" | "coordinators";

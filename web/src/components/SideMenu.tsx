@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { he } from "@admin-coordinator/shared";
+import { he, UserRole } from "@admin-coordinator/shared";
 import { useAuth } from "../context/AuthContext";
 
 const ITEMS = [
@@ -13,7 +13,12 @@ const ITEMS = [
 
 export function SideMenu() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, profile } = useAuth();
+
+  const items =
+    profile?.role === UserRole.ADMIN
+      ? [...ITEMS, { href: "/coordinators", label: he.menu.coordinators }]
+      : ITEMS;
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-l border-gray-200 bg-white">
@@ -21,7 +26,7 @@ export function SideMenu() {
         <span className="text-lg font-bold text-blue-900">{he.app.name}</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-3">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = pathname?.startsWith(item.href);
           return (
             <Link

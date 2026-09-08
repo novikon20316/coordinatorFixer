@@ -1,10 +1,10 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { he } from "@admin-coordinator/shared";
+import { he, UserRole } from "@admin-coordinator/shared";
 import { useAuth } from "../context/AuthContext";
 import { MenuKey } from "../navigation/types";
 
-const ITEMS: { key: MenuKey; label: string }[] = [
+const BASE_ITEMS: { key: MenuKey; label: string }[] = [
   { key: "overview", label: he.menu.overview },
   { key: "reports", label: he.menu.reports },
   { key: "changeStatus", label: he.menu.changeStatus },
@@ -21,14 +21,18 @@ export function AppMenu({
   onSelect: (key: MenuKey) => void;
   onClose: () => void;
 }) {
-  const { logout } = useAuth();
+  const { logout, profile } = useAuth();
+  const items =
+    profile?.role === UserRole.ADMIN
+      ? [...BASE_ITEMS, { key: "coordinators" as MenuKey, label: he.menu.coordinators }]
+      : BASE_ITEMS;
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.panel} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.appName}>{he.app.name}</Text>
-          {ITEMS.map((item) => (
+          {items.map((item) => (
             <Pressable
               key={item.key}
               style={[styles.item, active === item.key && styles.itemActive]}

@@ -45,8 +45,27 @@ export enum UserRole {
   COORDINATOR = "COORDINATOR",
 }
 
+// The college's real faculties (matches the canonical list maintained in the
+// sibling HIT system at organization-all-system/web/lib/faculties.ts). Every
+// coordinator belongs to exactly one; the student dashboard itself only
+// handles DATA_SCIENCE for now, but coordinator accounts can be assigned to
+// any of them.
 export enum Faculty {
+  SCIENCES = "SCIENCES",
+  ELECTRICAL = "ELECTRICAL",
+  INDUSTRIAL = "INDUSTRIAL",
+  LEARNING_TECH = "LEARNING_TECH",
+  MEDICAL_TECH = "MEDICAL_TECH",
+  DESIGN = "DESIGN",
   DATA_SCIENCE = "DATA_SCIENCE",
 }
 
-export const FACULTY_VALUES: Faculty[] = [Faculty.DATA_SCIENCE];
+export const FACULTY_VALUES: Faculty[] = [
+  Faculty.SCIENCES,
+  Faculty.ELECTRICAL,
+  Faculty.INDUSTRIAL,
+  Faculty.LEARNING_TECH,
+  Faculty.MEDICAL_TECH,
+  Faculty.DESIGN,
+  Faculty.DATA_SCIENCE,
+];

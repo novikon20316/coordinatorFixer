@@ -25,12 +25,41 @@ export const he = {
     resetLinkSent: "קישור לאיפוס סיסמה נשלח לכתובת האימייל",
     invalidCredentials: "אימייל או סיסמה שגויים",
     logout: "התנתקות",
+    resetPasswordTitle: "קביעת סיסמה חדשה",
+    newPassword: "סיסמה חדשה",
+    confirmNewPassword: "אימות סיסמה חדשה",
+    submitNewPassword: "עדכן סיסמה",
+    passwordMismatch: "הסיסמאות אינן תואמות",
+    passwordTooShort: "הסיסמה חייבת להכיל לפחות 6 תווים",
+    resetSuccess: "הסיסמה עודכנה בהצלחה. ניתן להתחבר כעת",
+    invalidOrExpiredLink: "הקישור אינו תקין או שפג תוקפו",
+    requestNewLink: "בקש קישור חדש",
   },
 
   menu: {
     overview: "סקירה",
     reports: "דוחות",
     changeStatus: "שינוי סטטוס",
+    coordinators: "ניהול רכזים",
+  },
+
+  coordinators: {
+    title: "ניהול רכזים",
+    addNew: "רכז חדש",
+    fullName: "שם מלא",
+    email: "אימייל",
+    tempPassword: "סיסמה זמנית",
+    faculty: "פקולטה",
+    selectFaculty: "בחר פקולטה",
+    create: "צור רכז",
+    createSuccess: "הרכז נוצר בהצלחה",
+    tempPasswordHint: "הרכז ישתמש ב\"שכחתי סיסמה\" כדי לקבוע סיסמה משלו",
+    active: "פעיל",
+    disabled: "מושבת",
+    disable: "השבת",
+    enable: "הפעל",
+    noCoordinators: "עדיין לא נוספו רכזים",
+    accessDenied: "הדף הזה מיועד למנהל המערכת בלבד",
   },
 
   dashboard: {
@@ -73,7 +102,13 @@ export const he = {
   } as Record<DegreeType, string>,
 
   faculty: {
-    [Faculty.DATA_SCIENCE]: "מדעי הנתונים",
+    [Faculty.SCIENCES]: "הפקולטה למדעים",
+    [Faculty.ELECTRICAL]: "הפקולטה להנדסת חשמל ואלקטרוניקה",
+    [Faculty.INDUSTRIAL]: "הפקולטה להנדסת תעשייה וניהול טכנולוגיה",
+    [Faculty.LEARNING_TECH]: "הפקולטה לטכנולוגיות למידה",
+    [Faculty.MEDICAL_TECH]: "הפקולטה לטכנולוגיות רפואיות",
+    [Faculty.DESIGN]: "הפקולטה לעיצוב",
+    [Faculty.DATA_SCIENCE]: "המחלקה למדעי הנתונים",
   } as Record<Faculty, string>,
 
   role: {
