@@ -9,7 +9,15 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { AppUser, Faculty, FACULTY_VALUES, he, UserRole } from "@admin-coordinator/shared";
+import * as Clipboard from "expo-clipboard";
+import {
+  AppUser,
+  Faculty,
+  FACULTY_VALUES,
+  generateReadableTempPassword,
+  he,
+  UserRole,
+} from "@admin-coordinator/shared";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/apiClient";
 
@@ -109,9 +117,23 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
   const [password, setPassword] = useState("");
   const [facultyId, setFacultyId] = useState<Faculty | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  function handleGeneratePassword() {
+    setPassword(generateReadableTempPassword());
+    setShowPassword(true);
+    setCopied(false);
+  }
+
+  async function handleCopyPassword() {
+    await Clipboard.setStringAsync(password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   async function handleSubmit() {
     setError(null);
@@ -130,6 +152,7 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
       setDisplayName("");
       setEmail("");
       setPassword("");
+      setShowPassword(false);
       setFacultyId(null);
       onCreated();
     } catch (err) {
@@ -157,7 +180,25 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
       />
 
       <Text style={styles.label}>{he.coordinators.tempPassword}</Text>
-      <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry textAlign="right" />
+      <TextInput
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        textAlign="right"
+      />
+      <View style={styles.passwordActions}>
+        <Pressable style={styles.smallButton} onPress={handleGeneratePassword}>
+          <Text style={styles.smallButtonText}>{he.coordinators.generatePassword}</Text>
+        </Pressable>
+        {password.length > 0 && (
+          <Pressable style={styles.smallButton} onPress={handleCopyPassword}>
+            <Text style={styles.smallButtonText}>
+              {copied ? he.coordinators.copied : he.coordinators.copyPassword}
+            </Text>
+          </Pressable>
+        )}
+      </View>
       <Text style={styles.hint}>{he.coordinators.tempPasswordHint}</Text>
 
       <Text style={styles.label}>{he.coordinators.faculty}</Text>
@@ -248,6 +289,24 @@ const styles = StyleSheet.create({
     textAlign: "right",
     writingDirection: "rtl",
     marginTop: 4,
+  },
+  passwordActions: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    marginTop: 8,
+  },
+  smallButton: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#FFFFFF",
+  },
+  smallButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
   },
   errorText: {
     color: "#DC2626",

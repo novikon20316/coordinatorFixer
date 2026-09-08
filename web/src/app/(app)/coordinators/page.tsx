@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppUser, FACULTY_VALUES, he, UserRole } from "@admin-coordinator/shared";
+import { AppUser, FACULTY_VALUES, generateReadableTempPassword, he, UserRole } from "@admin-coordinator/shared";
 import { useAuth } from "../../../context/AuthContext";
 import { apiFetch } from "../../../lib/apiClient";
 
@@ -110,9 +110,27 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [facultyId, setFacultyId] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  function handleGeneratePassword() {
+    setPassword(generateReadableTempPassword());
+    setShowPassword(true);
+    setCopied(false);
+  }
+
+  async function handleCopyPassword() {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard access denied - password is still visible to copy manually
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,6 +147,7 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
       setEmail("");
       setPassword("");
       setFacultyId("");
+      setShowPassword(false);
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : he.common.error);
@@ -171,14 +190,32 @@ function NewCoordinatorForm({ onCreated }: { onCreated: () => void }) {
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-gray-700">{he.coordinators.tempPassword}</span>
-          <input
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-          />
+          <div className="flex gap-2">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputClass} flex-1`}
+            />
+            <button
+              type="button"
+              onClick={handleGeneratePassword}
+              className="shrink-0 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              {he.coordinators.generatePassword}
+            </button>
+            {password && (
+              <button
+                type="button"
+                onClick={handleCopyPassword}
+                className="shrink-0 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                {copied ? he.coordinators.copied : he.coordinators.copyPassword}
+              </button>
+            )}
+          </div>
           <span className="text-xs text-gray-500">{he.coordinators.tempPasswordHint}</span>
         </label>
 
