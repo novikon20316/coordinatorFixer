@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Deploy: `firebase deploy --only firestore:rules` (after `firebase use coordinatorfixer`).
+//
+// Design principle: this file only ever grants READ access to clients.
+// Every write (creating/updating a student record, creating a coordinator
+// account, changing a role) goes through the Express server's Admin SDK,
+// which authenticates the caller, checks their role, and bypasses these
+// rules entirely — see server/src/services/students.service.ts and
+// server/src/controllers/users.controller.ts. Client code must never call
+// Firestore's set/update/delete directly on these collections; if a future
+// feature needs a new kind of write, add a server endpoint for it rather
+// than opening one up here.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Single fetch of the caller's own profile. A disabled account
+    // (isActive == false) loses read access immediately, everywhere, not
+    // just on the next API call - important since web/mobile read Firestore
+    // directly for the dashboard rather than going through the server.
+    function callerProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return isSignedIn() && callerProfile().get('isActive', true) == true;
+    }
+
+    function callerRole() {
+      return callerProfile().role;
+    }
+
+    function isAdmin() {
+      return isActiveUser() && callerRole() == 'ADMIN';
+    }
+
+    function isCoordinatorOrAdmin() {
+      return isActiveUser() && (callerRole() == 'COORDINATOR' || callerRole() == 'ADMIN');
+    }
+
+    // Student applications carry personal data (name, academic history,
+    // background). Coordinators/admin can read for the dashboard; nothing
+    // can write from the client.
+    match /students/{studentId} {
+      allow read: if isCoordinatorOrAdmin();
+      allow write: if false;
+    }
+
+    // A signed-in user may read only their own profile (needed to resolve
+    // their own role/isActive above) - not the full user directory, which
+    // this app has no legitimate client-side use for. Account creation and
+    // role/isActive changes are admin-only server operations.
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Deny by default: anything not explicitly matched above is denied,
+    // both read and write.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
