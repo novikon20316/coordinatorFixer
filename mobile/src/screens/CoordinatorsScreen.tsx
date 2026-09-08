@@ -26,6 +26,8 @@ export function CoordinatorsScreen() {
   const [coordinators, setCoordinators] = useState<AppUser[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [resetLinkError, setResetLinkError] = useState<string | null>(null);
 
   const isAdmin = profile?.role === UserRole.ADMIN;
 
@@ -54,6 +56,19 @@ export function CoordinatorsScreen() {
     reload();
   }
 
+  async function handleGetResetLink(uid: string) {
+    setResetLinkError(null);
+    setResetLink(null);
+    try {
+      const result = (await apiFetch(`/api/users/${uid}/reset-link`, { method: "POST" })) as {
+        link: string;
+      };
+      setResetLink(result.link);
+    } catch (err) {
+      setResetLinkError(err instanceof Error ? err.message : he.common.error);
+    }
+  }
+
   if (!profile) {
     return (
       <View style={styles.center}>
@@ -70,44 +85,85 @@ export function CoordinatorsScreen() {
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      ListHeaderComponent={
-        <>
-          <NewCoordinatorForm onCreated={reload} />
-          {listError && <Text style={styles.errorText}>{listError}</Text>}
-          {loadingList && <ActivityIndicator style={{ marginTop: 12 }} />}
-          {!loadingList && coordinators.length === 0 && (
-            <Text style={styles.emptyText}>{he.coordinators.noCoordinators}</Text>
-          )}
-        </>
-      }
-      data={coordinators}
-      keyExtractor={(item) => item.uid}
-      renderItem={({ item }) => (
-        <View style={styles.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowName}>{item.displayName}</Text>
-            <Text style={styles.rowSub}>{item.email}</Text>
-            <Text style={styles.rowSub}>
-              {item.facultyId ? he.faculty[item.facultyId] : "-"}
-            </Text>
-          </View>
-          <View style={styles.rowActions}>
-            <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeDisabled]}>
-              <Text style={styles.badgeText}>
-                {item.isActive ? he.coordinators.active : he.coordinators.disabled}
+    <>
+      <FlatList
+        style={styles.container}
+        ListHeaderComponent={
+          <>
+            <NewCoordinatorForm onCreated={reload} />
+            {listError && <Text style={styles.errorText}>{listError}</Text>}
+            {resetLinkError && <Text style={styles.errorText}>{resetLinkError}</Text>}
+            {loadingList && <ActivityIndicator style={{ marginTop: 12 }} />}
+            {!loadingList && coordinators.length === 0 && (
+              <Text style={styles.emptyText}>{he.coordinators.noCoordinators}</Text>
+            )}
+          </>
+        }
+        data={coordinators}
+        keyExtractor={(item) => item.uid}
+        renderItem={({ item }) => (
+          <View style={styles.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowName}>{item.displayName}</Text>
+              <Text style={styles.rowSub}>{item.email}</Text>
+              <Text style={styles.rowSub}>
+                {item.facultyId ? he.faculty[item.facultyId] : "-"}
               </Text>
             </View>
-            <Pressable onPress={() => toggleActive(item.uid, item.isActive)}>
-              <Text style={styles.toggleLink}>
-                {item.isActive ? he.coordinators.disable : he.coordinators.enable}
+            <View style={styles.rowActions}>
+              <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgeDisabled]}>
+                <Text style={styles.badgeText}>
+                  {item.isActive ? he.coordinators.active : he.coordinators.disabled}
+                </Text>
+              </View>
+              <Pressable onPress={() => toggleActive(item.uid, item.isActive)}>
+                <Text style={styles.toggleLink}>
+                  {item.isActive ? he.coordinators.disable : he.coordinators.enable}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => handleGetResetLink(item.uid)}>
+                <Text style={styles.toggleLink}>{he.coordinators.getResetLink}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      />
+      {resetLink && <ResetLinkModal link={resetLink} onClose={() => setResetLink(null)} />}
+    </>
+  );
+}
+
+function ResetLinkModal({ link, onClose }: { link: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await Clipboard.setStringAsync(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.pickerBackdrop}>
+        <View style={styles.resetLinkPanel}>
+          <Text style={styles.resetLinkTitle}>{he.coordinators.resetLinkTitle}</Text>
+          <Text style={styles.hint}>{he.coordinators.resetLinkHint}</Text>
+          <Text selectable style={styles.resetLinkText}>
+            {link}
+          </Text>
+          <View style={styles.resetLinkActions}>
+            <Pressable style={styles.smallButton} onPress={onClose}>
+              <Text style={styles.smallButtonText}>{he.coordinators.close}</Text>
+            </Pressable>
+            <Pressable style={[styles.smallButton, styles.smallButtonPrimary]} onPress={handleCopy}>
+              <Text style={styles.smallButtonPrimaryText}>
+                {copied ? he.coordinators.copied : he.coordinators.copyLink}
               </Text>
             </Pressable>
           </View>
         </View>
-      )}
-    />
+      </View>
+    </Modal>
   );
 }
 
@@ -363,4 +419,41 @@ const styles = StyleSheet.create({
   },
   pickerItem: { paddingVertical: 14, paddingHorizontal: 16 },
   pickerItemText: { textAlign: "right", writingDirection: "rtl", color: "#111827" },
+  resetLinkPanel: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+  },
+  resetLinkTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "right",
+    writingDirection: "rtl",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  resetLinkText: {
+    marginTop: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    color: "#111827",
+    fontSize: 12,
+  },
+  resetLinkActions: {
+    flexDirection: "row-reverse",
+    gap: 8,
+    marginTop: 16,
+  },
+  smallButtonPrimary: {
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+  },
+  smallButtonPrimaryText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 });

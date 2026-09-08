@@ -4,6 +4,11 @@ import { auth, db } from "../config/firebase";
 
 const COLLECTION = "users";
 
+// Same reasoning as scripts/get-reset-link.ts: Firebase's own hosted
+// reset-password page isn't reliable, so every reset link - including this
+// admin-triggered one - points at our own /reset-password page instead.
+const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+
 /** Admin-only: list all coordinator/admin accounts. */
 export async function listUsers(_req: Request, res: Response, next: NextFunction) {
   try {
@@ -74,6 +79,40 @@ export async function updateUserActive(req: Request, res: Response, next: NextFu
     const { isActive } = req.body as { isActive: boolean };
     await db!.collection(COLLECTION).doc(req.params.uid).update({ isActive });
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Admin-only: generate a one-time password-reset link for a coordinator, so
+ * the admin can hand it to them directly (in person, by phone, etc.)
+ * instead of relying on email delivery. This is the closest thing to
+ * "recovering" a coordinator's password that's ever appropriate - their
+ * actual password is never stored anywhere in a form the admin (or anyone
+ * else) could read back, by design. See SECURITY.md.
+ */
+export async function generateResetLink(req: Request, res: Response, next: NextFunction) {
+  try {
+    const doc = await db!.collection(COLLECTION).doc(req.params.uid).get();
+    if (!doc.exists) return res.status(404).json({ error: "User not found" });
+    const email = doc.data()!.email as string;
+
+    // The Admin SDK always wraps this through Firebase's own hosted
+    // <project>.firebaseapp.com/__/auth/action page (actionCodeSettings.url
+    // only ends up as its continueUrl query param, unlike the client SDK's
+    // sendPasswordResetEmail) - and that hosted page rejects even freshly
+    // issued, never-used codes on this project (see SECURITY.md/README).
+    // Pull the oobCode out and build our own link straight to
+    // /reset-password, exactly like scripts/get-reset-link.ts does.
+    const rawLink = await auth!.generatePasswordResetLink(email, {
+      url: `${APP_URL}/reset-password`,
+      handleCodeInApp: true,
+    });
+    const oobCode = new URL(rawLink).searchParams.get("oobCode");
+    const link = `${APP_URL}/reset-password?oobCode=${oobCode}&mode=resetPassword`;
+
+    res.json({ link });
   } catch (err) {
     next(err);
   }

@@ -69,6 +69,11 @@ export const he = {
     enable: "הפעל",
     noCoordinators: "עדיין לא נוספו רכזים",
     accessDenied: "הדף הזה מיועד למנהל המערכת בלבד",
+    getResetLink: "קישור לאיפוס סיסמה",
+    resetLinkTitle: "קישור לאיפוס סיסמה",
+    resetLinkHint: "העתק ושלח לרכז - הקישור תקף לזמן מוגבל ומיועד לשימוש חד פעמי",
+    copyLink: "העתק קישור",
+    close: "סגור",
   },
 
   dashboard: {

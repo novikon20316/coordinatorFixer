@@ -36,6 +36,17 @@ does.
   and for direct Firestore reads (`firebase/firestore.rules`) - no need to
   delete the Firebase Auth account. Admin-only endpoint:
   `PATCH /api/users/:uid/active`.
+- **Passwords are never stored or shown in plaintext, including the admin's
+  own view of a coordinator they created.** The temp password an admin sets
+  when creating a coordinator exists only in that moment's HTTP request to
+  `POST /api/users` (which hands it straight to `auth.createUser`) and in the
+  admin's own clipboard if they used the "generate password" button - it is
+  not persisted anywhere the app could read back later, by design (this is
+  what password hashing is *for*). If an admin needs to get a coordinator
+  back into their account later, the correct tool is
+  `POST /api/users/:uid/reset-link` (admin-only), which returns a one-time
+  password-reset link to hand the coordinator directly - never a way to
+  recover or view what their password was.
 - **Firestore rules deny all client writes.** See
   [firebase/firestore.rules](firebase/firestore.rules). Coordinators/admin can
   *read* `students` for the dashboard; every write (create, status change,

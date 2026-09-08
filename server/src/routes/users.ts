@@ -12,5 +12,6 @@ router.get("/", controller.listUsers);
 router.post("/", controller.createUser);
 router.patch("/:uid/role", controller.updateUserRole);
 router.patch("/:uid/active", controller.updateUserActive);
+router.post("/:uid/reset-link", controller.generateResetLink);
 
 export default router;

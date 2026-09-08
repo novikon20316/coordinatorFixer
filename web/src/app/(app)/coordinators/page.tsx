@@ -10,6 +10,8 @@ export default function CoordinatorsPage() {
   const [coordinators, setCoordinators] = useState<AppUser[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [resetLinkError, setResetLinkError] = useState<string | null>(null);
 
   const isAdmin = profile?.role === UserRole.ADMIN;
 
@@ -36,6 +38,19 @@ export default function CoordinatorsPage() {
       body: JSON.stringify({ isActive: !isActive }),
     });
     reload();
+  }
+
+  async function handleGetResetLink(uid: string) {
+    setResetLinkError(null);
+    setResetLink(null);
+    try {
+      const result = (await apiFetch(`/api/users/${uid}/reset-link`, { method: "POST" })) as {
+        link: string;
+      };
+      setResetLink(result.link);
+    } catch (err) {
+      setResetLinkError(err instanceof Error ? err.message : he.common.error);
+    }
   }
 
   if (!profile) {
@@ -87,12 +102,20 @@ export default function CoordinatorsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => toggleActive(c.uid, c.isActive)}
-                        className="text-sm font-medium text-blue-700 hover:underline"
-                      >
-                        {c.isActive ? he.coordinators.disable : he.coordinators.enable}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleActive(c.uid, c.isActive)}
+                          className="text-sm font-medium text-blue-700 hover:underline"
+                        >
+                          {c.isActive ? he.coordinators.disable : he.coordinators.enable}
+                        </button>
+                        <button
+                          onClick={() => handleGetResetLink(c.uid)}
+                          className="text-sm font-medium text-blue-700 hover:underline"
+                        >
+                          {he.coordinators.getResetLink}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -100,7 +123,54 @@ export default function CoordinatorsPage() {
             </table>
           </div>
         )}
+        {resetLinkError && <p className="text-sm text-red-600">{resetLinkError}</p>}
       </section>
+
+      {resetLink && <ResetLinkModal link={resetLink} onClose={() => setResetLink(null)} />}
+    </div>
+  );
+}
+
+function ResetLinkModal({ link, onClose }: { link: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard access denied - link is still visible to copy manually
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+        <h2 className="mb-2 font-semibold text-gray-900">{he.coordinators.resetLinkTitle}</h2>
+        <p className="mb-3 text-xs text-gray-500">{he.coordinators.resetLinkHint}</p>
+        <input
+          readOnly
+          dir="ltr"
+          value={link}
+          onFocus={(e) => e.target.select()}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700"
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+          >
+            {he.coordinators.close}
+          </button>
+          <button
+            onClick={handleCopy}
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          >
+            {copied ? he.coordinators.copied : he.coordinators.copyLink}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
