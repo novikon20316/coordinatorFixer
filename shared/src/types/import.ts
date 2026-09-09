@@ -92,6 +92,10 @@ export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
     ok: true,
     input: {
       fullName,
+      // organization-all-system's export has no תעודת זהות field - StudentId
+      // is that system's own internal id, not a real ID number, but it's the
+      // closest thing available; left for a coordinator to correct by hand.
+      idNumber: row.StudentId ?? "",
       faculty,
       track: StudentTrack.REGULAR,
       status: StudentStatus.REGISTERED,

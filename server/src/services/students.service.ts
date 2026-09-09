@@ -1,4 +1,11 @@
-import { Student, StudentCreateInput, StudentFilters, StudentUpdateInput } from "@admin-coordinator/shared";
+import {
+  buildDefaultCourseCategories,
+  buildDefaultMilestones,
+  Student,
+  StudentCreateInput,
+  StudentFilters,
+  StudentUpdateInput,
+} from "@admin-coordinator/shared";
 import { db } from "../config/firebase";
 
 const COLLECTION = "students";
@@ -47,6 +54,11 @@ export async function createStudent(input: StudentCreateInput): Promise<Student>
   const firestore = ensureDb();
   const now = new Date().toISOString();
   const ref = await firestore.collection(COLLECTION).add({
+    // Callers (the quick-add bar, the bulk importer) don't know this
+    // department's course/milestone catalog - seed it here so every new
+    // student starts with the right checklist instead of an empty one.
+    courseCategories: buildDefaultCourseCategories(input.faculty),
+    milestones: buildDefaultMilestones(input.faculty),
     ...input,
     createdAt: now,
     updatedAt: now,

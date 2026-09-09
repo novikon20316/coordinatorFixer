@@ -1,9 +1,18 @@
-import { DegreeType, Faculty, Student, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
+import {
+  buildDefaultCourseCategories,
+  buildDefaultMilestones,
+  DegreeType,
+  Faculty,
+  Student,
+  StudentStatus,
+  StudentTrack,
+} from "@admin-coordinator/shared";
 
 export const mockStudents: Student[] = [
   {
     id: "1",
     fullName: "נועה כהן",
+    idNumber: "304958172",
     faculty: Faculty.DATA_SCIENCE,
     track: StudentTrack.REGULAR,
     status: StudentStatus.ACTIVE,
@@ -12,12 +21,29 @@ export const mockStudents: Student[] = [
     degreeType: DegreeType.BSC,
     gpa: 92,
     background: "מפתחת תוכנה, 3 שנות ניסיון",
+    projectTitle: "מודל לחיזוי נשירת סטודנטים",
+    supervisorName: "ד\"ר עומר שפירא",
+    finalGrade: 94,
+    milestones: buildDefaultMilestones(Faculty.DATA_SCIENCE).map((m) => ({ ...m, done: true })),
+    courseCategories: buildDefaultCourseCategories(Faculty.DATA_SCIENCE).map((c) => ({
+      ...c,
+      entries:
+        c.entries.length > 0
+          ? c.entries.map((e) => ({ ...e, passed: true, grade: 85 }))
+          : Array.from({ length: c.requiredCount }, (_, i) => ({
+              name: `${c.label} ${i + 1}`,
+              credits: 3,
+              grade: 90,
+              passed: true,
+            })),
+    })),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "2",
     fullName: "איתי לוי",
+    idNumber: "203847561",
     faculty: Faculty.DATA_SCIENCE,
     track: StudentTrack.REGULAR,
     status: StudentStatus.REGISTERED,
@@ -26,12 +52,17 @@ export const mockStudents: Student[] = [
     degreeType: DegreeType.BSC,
     gpa: 88,
     background: "ללא ניסיון תעסוקתי בתחום",
+    projectTitle: "עבודות נחתם",
+    supervisorName: "פרופ' יעל אברהמי",
+    milestones: buildDefaultMilestones(Faculty.DATA_SCIENCE),
+    courseCategories: buildDefaultCourseCategories(Faculty.DATA_SCIENCE),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "3",
     fullName: "מאיה ישראלי",
+    idNumber: "112233445",
     faculty: Faculty.DATA_SCIENCE,
     track: StudentTrack.COMPLETION,
     status: StudentStatus.REJECTED,
@@ -40,12 +71,15 @@ export const mockStudents: Student[] = [
     degreeType: DegreeType.BA,
     gpa: 79,
     background: "עוזרת הוראה",
+    milestones: buildDefaultMilestones(Faculty.DATA_SCIENCE),
+    courseCategories: buildDefaultCourseCategories(Faculty.DATA_SCIENCE),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "4",
     fullName: "דניאל אברהם",
+    idNumber: "556677889",
     faculty: Faculty.DATA_SCIENCE,
     track: StudentTrack.COMPLETION,
     status: StudentStatus.CANCELED,
@@ -54,6 +88,8 @@ export const mockStudents: Student[] = [
     degreeType: DegreeType.BA,
     gpa: 85,
     background: "אנליסט נתונים",
+    milestones: buildDefaultMilestones(Faculty.DATA_SCIENCE),
+    courseCategories: buildDefaultCourseCategories(Faculty.DATA_SCIENCE),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },

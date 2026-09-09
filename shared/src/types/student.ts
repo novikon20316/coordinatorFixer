@@ -1,11 +1,67 @@
 import { DegreeType, Faculty, StudentStatus, StudentTrack } from "../constants/status";
 
+/** One entry in a course-completion category - either a checked-off catalog
+ *  course (see CourseCompletionCategory.entries for the fixed-catalog case)
+ *  or a freely-typed course (core/elective categories, whose real course
+ *  lists vary by year and aren't a fixed catalog). */
+export interface CourseCompletionEntry {
+  name: string;
+  credits?: number;
+  grade?: number;
+  /** Passing the course - toggled by the coordinator, not auto-derived from
+   *  `grade`, since a course can be recorded (grade pending) before it's
+   *  known to count. */
+  passed: boolean;
+}
+
+/** One graduation requirement group on a student's card (e.g. the core
+ *  curriculum, or the core/elective course quota) - see
+ *  shared/src/constants/dataScienceCurriculum.ts for Data Science's real
+ *  values. `entries` is always exactly `requiredCount` long for a
+ *  fixed-catalog category (one entry per catalog course); for a free-text
+ *  category coordinators add/remove rows themselves via the "+" control. */
+export interface CourseCompletionCategory {
+  key: string;
+  label: string;
+  /** Whether `entries` is a fixed catalog list (checkbox per course, no
+   *  add/remove) or freely added/removed by the coordinator. */
+  fixedCatalog: boolean;
+  requiredCount: number;
+  requiredCredits?: number;
+  entries: CourseCompletionEntry[];
+}
+
+/** One checklist item in a student's project/thesis milestone tracker - see
+ *  DATA_SCIENCE_PROJECT_MILESTONES for Data Science's real, ordered list. */
+export interface MilestoneProgress {
+  key: string;
+  nameHe: string;
+  nameEn: string;
+  done: boolean;
+}
+
 export interface Student {
   id: string;
   fullName: string;
+  /** תעודת זהות */
+  idNumber: string;
   faculty: Faculty;
   track: StudentTrack;
   status: StudentStatus;
+
+  /** שם הפרויקט/התזה */
+  projectTitle?: string;
+  /** שם המנחה */
+  supervisorName?: string;
+  /** Ordered checklist the coordinator checks off as the student clears each
+   *  milestone of their project/thesis - see MilestoneProgress. */
+  milestones?: MilestoneProgress[];
+  /** ציון סופי לפרויקט/תזה - entered once the whole process is graded. */
+  finalGrade?: number;
+  /** Graduation coursework requirements (core curriculum + core + elective) -
+   *  see CourseCompletionCategory. Undefined for faculties with no known
+   *  catalog yet (only Data Science is modeled today). */
+  courseCategories?: CourseCompletionCategory[];
 
   /** המכללה האקדמית הקודמת */
   previousCollege: string;

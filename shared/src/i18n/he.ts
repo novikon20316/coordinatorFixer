@@ -83,13 +83,35 @@ export const he = {
     } as Record<StudentTrack, string>,
     addStudent: "הוספת תלמיד",
     importStudents: "ייבוא תלמידים",
+    studentsListTitle: "רשימת סטודנטים",
+    searchPlaceholder: "חיפוש לפי שם או ת.ז...",
   },
 
   studentForm: {
-    title: "הוספת תלמיד חדש",
+    title: "הוספת סטודנט/ית חדש/ה",
+    idNumber: "תעודת זהות",
+    idNumberPlaceholder: "לדוגמה: 123456789",
+    fullNamePlaceholder: "לדוגמה: רון כהן",
     track: "מסלול",
-    create: "הוסף תלמיד",
+    create: "הוסף לרשימה",
     createSuccess: "התלמיד נוסף בהצלחה",
+  },
+
+  studentCard: {
+    projectSection: "פרויקט / תזה",
+    projectTitle: "שם הפרויקט",
+    supervisorName: "שם המנחה",
+    milestones: "אבני דרך",
+    finalGrade: "ציון סופי",
+    courseworkSection: "מקצועות לתואר",
+    addCourse: "הוסף קורס",
+    courseName: "שם הקורס",
+    credits: "נ\"ז",
+    grade: "ציון",
+    passed: "עבר/ה",
+    removeCourse: "הסר",
+    moreDetails: "פרטים נוספים",
+    clearanceForm: "פתיחת טופס סילוקין",
   },
 
   studentDetail: {
@@ -114,6 +136,7 @@ export const he = {
   table: {
     columns: {
       fullName: "שם מלא",
+      idNumber: "תעודת זהות",
       previousCollege: "מכללה אקדמית קודמת",
       degreeField: "תחום התואר",
       degreeType: "סוג התואר",

@@ -1,6 +1,8 @@
 "use client";
 
-import { he, Student, StudentStatus } from "@admin-coordinator/shared";
+import { useState } from "react";
+import { DEGREE_TYPE_VALUES, DegreeType, he, Student, StudentStatus } from "@admin-coordinator/shared";
+import { apiFetch } from "../lib/apiClient";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
@@ -28,6 +30,40 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function StudentDetailModal({ student, onClose }: { student: Student; onClose: () => void }) {
+  // Not synced back from live updates after the first render, same tradeoff
+  // as StudentCard's local drafts - see that component's comment.
+  const [previousCollege, setPreviousCollege] = useState(student.previousCollege);
+  const [degreeField, setDegreeField] = useState(student.degreeField);
+  const [degreeType, setDegreeType] = useState<DegreeType>(student.degreeType);
+  const [gpa, setGpa] = useState(student.gpa ? String(student.gpa) : "");
+  const [background, setBackground] = useState(student.background);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/students/${student.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          previousCollege,
+          degreeField,
+          degreeType,
+          gpa: Number(gpa) || 0,
+          background,
+        }),
+      });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : he.common.error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputClass = "rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
@@ -52,30 +88,65 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
         <div className="flex flex-col gap-4">
           <Section title={he.studentDetail.personalSection}>
             <Field label={he.table.columns.fullName} value={student.fullName} />
+            <Field label={he.studentForm.idNumber} value={student.idNumber} />
             <Field label={he.coordinators.faculty} value={he.faculty[student.faculty]} />
+            <Field label={he.studentForm.track} value={he.dashboard.tabs[student.track]} />
           </Section>
 
           <Section title={he.studentDetail.academicSection}>
-            <Field label={he.table.columns.previousCollege} value={student.previousCollege} />
-            <Field label={he.table.columns.degreeField} value={student.degreeField} />
-            <Field label={he.table.columns.degreeType} value={he.degreeType[student.degreeType]} />
-            <Field label={he.table.columns.gpa} value={student.gpa} />
-            <Field label={he.table.columns.background} value={student.background} />
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.table.columns.previousCollege}
+              <input
+                value={previousCollege}
+                onChange={(e) => setPreviousCollege(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.table.columns.degreeField}
+              <input value={degreeField} onChange={(e) => setDegreeField(e.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.table.columns.degreeType}
+              <select
+                value={degreeType}
+                onChange={(e) => setDegreeType(e.target.value as DegreeType)}
+                className={inputClass}
+              >
+                {DEGREE_TYPE_VALUES.map((d) => (
+                  <option key={d} value={d}>
+                    {he.degreeType[d]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.table.columns.gpa}
+              <input type="number" min={0} max={100} value={gpa} onChange={(e) => setGpa(e.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500 sm:col-span-2">
+              {he.table.columns.background}
+              <input value={background} onChange={(e) => setBackground(e.target.value)} className={inputClass} />
+            </label>
           </Section>
 
-          <Section title={he.studentDetail.statusSection}>
-            <Field label={he.studentForm.track} value={he.dashboard.tabs[student.track]} />
-            <Field label={he.table.columns.status} value={he.status[student.status]} />
-          </Section>
           <p className="-mt-2 text-xs text-gray-500">{he.statusDescription[student.status]}</p>
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex justify-end gap-3">
           <button
             onClick={onClose}
             className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
           >
             {he.studentDetail.close}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+          >
+            {saving ? he.common.loading : he.common.save}
           </button>
         </div>
       </div>
