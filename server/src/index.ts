@@ -56,9 +56,12 @@ app.use(
   })
 );
 
-// Small limit - this API has no file uploads today; a generous body limit on
-// a JSON-only API is just a bigger DoS surface for no benefit.
-app.use(express.json({ limit: "256kb" }));
+// Bumped from 256kb for POST /api/students/import, which sends a whole
+// spreadsheet's rows as JSON in one request; still no actual file uploads
+// (multipart), so this stays a JSON-only body limit rather than a generous
+// one - a bigger body limit on a JSON-only API is just a bigger DoS surface
+// for no benefit.
+app.use(express.json({ limit: "2mb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", firebaseReady: isFirebaseReady() });

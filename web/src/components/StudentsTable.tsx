@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { he, Student, StudentStatus } from "@admin-coordinator/shared";
+import { StudentDetailModal } from "./StudentDetailModal";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
@@ -10,6 +12,8 @@ const STATUS_STYLES: Record<StudentStatus, string> = {
 };
 
 export function StudentsTable({ students }: { students: Student[] }) {
+  const [selected, setSelected] = useState<Student | null>(null);
+
   if (students.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 py-16 text-center text-gray-500">
@@ -34,7 +38,7 @@ export function StudentsTable({ students }: { students: Student[] }) {
         </thead>
         <tbody className="divide-y divide-gray-100">
           {students.map((s) => (
-            <tr key={s.id} className="hover:bg-gray-50">
+            <tr key={s.id} onClick={() => setSelected(s)} className="cursor-pointer hover:bg-gray-50">
               <td className="px-4 py-3 font-medium text-gray-900">{s.fullName}</td>
               <td className="px-4 py-3 text-gray-700">{s.previousCollege}</td>
               <td className="px-4 py-3 text-gray-700">{s.degreeField}</td>
@@ -52,6 +56,7 @@ export function StudentsTable({ students }: { students: Student[] }) {
           ))}
         </tbody>
       </table>
+      {selected && <StudentDetailModal student={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

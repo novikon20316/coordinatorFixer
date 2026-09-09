@@ -81,6 +81,34 @@ export const he = {
       [StudentTrack.REGULAR]: "מן המניין",
       [StudentTrack.COMPLETION]: "בהשלמה",
     } as Record<StudentTrack, string>,
+    addStudent: "הוספת תלמיד",
+    importStudents: "ייבוא תלמידים",
+  },
+
+  studentForm: {
+    title: "הוספת תלמיד חדש",
+    track: "מסלול",
+    create: "הוסף תלמיד",
+    createSuccess: "התלמיד נוסף בהצלחה",
+  },
+
+  studentDetail: {
+    title: "פרטי תלמיד",
+    personalSection: "פרטים אישיים",
+    academicSection: "רקע אקדמי",
+    statusSection: "סטטוס קבלה",
+    importedBadge: "יובא ממערכת חיצונית - יש להשלים פרטים",
+    close: "סגור",
+  },
+
+  studentImport: {
+    title: "ייבוא תלמידים ממערכת אחרת",
+    description:
+      "אין כרגע חיבור אוטומטי בין המערכות. יש לייצא את רשימת המשתמשים מהמערכת השנייה לקובץ Excel (תפריט הרכזים/מנהל שם) ולהעלות אותו כאן. שורות שאינן מסומנות כתלמיד יידלגו, ושדות שלא קיימים במערכת המקור (מכללה קודמת, תחום, ממוצע, רקע) יישארו ריקים להשלמה ידנית.",
+    uploadButton: "בחר קובץ Excel",
+    uploading: "מייבא...",
+    resultSummary: "יובאו {created} מתוך {total} שורות ({skipped} דולגו, {failed} נכשלו)",
+    noRows: "לא נמצאו שורות בקובץ",
   },
 
   table: {

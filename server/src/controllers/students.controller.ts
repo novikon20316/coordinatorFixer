@@ -1,6 +1,20 @@
 import { Request, Response, NextFunction } from "express";
-import { Faculty, StudentTrack, StudentStatus, DegreeType } from "@admin-coordinator/shared";
+import {
+  Faculty,
+  StudentTrack,
+  StudentStatus,
+  DegreeType,
+  StudentImportRow,
+  StudentImportRowResult,
+  StudentImportSummary,
+  mapStudentImportRow,
+} from "@admin-coordinator/shared";
 import * as studentsService from "../services/students.service";
+
+// Mirrors userImportExport.ts's MAX_IMPORT_ROWS on the sibling system - this
+// admin utility only ever handles a college department's roster, not an
+// unbounded upload.
+const MAX_IMPORT_ROWS = 5000;
 
 export async function getStudents(req: Request, res: Response, next: NextFunction) {
   try {
@@ -53,6 +67,56 @@ export async function removeStudent(req: Request, res: Response, next: NextFunct
   try {
     await studentsService.deleteStudent(req.params.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Bulk-creates candidate records from rows exported out of
+ * organization-all-system (see shared/src/types/import.ts for why this is a
+ * file upload rather than a live API call). Body: { rows: StudentImportRow[] }
+ * - the client parses the uploaded .xlsx into that row shape client-side.
+ */
+export async function importStudents(req: Request, res: Response, next: NextFunction) {
+  try {
+    const rows = req.body?.rows;
+    if (!Array.isArray(rows)) {
+      return res.status(400).json({ error: "Expected body.rows to be an array" });
+    }
+    if (rows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `File has more than ${MAX_IMPORT_ROWS} rows - split it and import separately` });
+    }
+
+    const details: StudentImportRowResult[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const rowNumber = i + 2; // header occupies row 1 in the source workbook
+      const raw = rows[i] as StudentImportRow;
+      const fullName = String(raw?.FullNameHe ?? raw?.FullNameEn ?? "");
+
+      const mapped = mapStudentImportRow(raw);
+      if (!mapped.ok) {
+        details.push({ row: rowNumber, fullName, status: "skipped", reason: mapped.reason });
+        continue;
+      }
+
+      try {
+        await studentsService.createStudent(mapped.input);
+        details.push({ row: rowNumber, fullName, status: "created" });
+      } catch (err: any) {
+        details.push({ row: rowNumber, fullName, status: "failed", reason: err?.message ?? "Unknown error" });
+      }
+    }
+
+    const summary: StudentImportSummary = {
+      totalRows: rows.length,
+      created: details.filter((d) => d.status === "created").length,
+      skipped: details.filter((d) => d.status === "skipped").length,
+      failed: details.filter((d) => d.status === "failed").length,
+      details,
+    };
+    res.json(summary);
   } catch (err) {
     next(err);
   }

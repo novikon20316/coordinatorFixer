@@ -7,6 +7,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", controller.getStudents);
+router.post("/import", controller.importStudents);
 router.get("/:id", controller.getStudentById);
 router.post("/", controller.postStudent);
 router.patch("/:id", controller.patchStudent);
