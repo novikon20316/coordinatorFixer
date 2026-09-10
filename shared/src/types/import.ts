@@ -65,11 +65,11 @@ export type MappedImportRow =
   | { ok: false; reason: string };
 
 /**
- * Maps one raw export row to a creatable Student. Newly-imported candidates
- * default to StudentStatus.REGISTERED ("נרשם") - the same status a manually
- * added candidate starts at while the admissions committee reviews them
- * (see he.statusDescription) - and StudentTrack.REGULAR, since the source
- * system has no equivalent of this system's track distinction.
+ * Maps one raw export row to a creatable Student, defaulting to
+ * StudentStatus.ACTIVE and StudentTrack.REGULAR - the admissions-review
+ * lifecycle this once used StudentStatus.REGISTERED for now belongs to
+ * Candidate (see types/candidate.ts) instead, and the source system has no
+ * equivalent of this system's track distinction.
  */
 export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
   const role = (row.Role ?? "").trim().toLowerCase();
@@ -98,7 +98,7 @@ export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
       idNumber: row.StudentId ?? "",
       faculty,
       track: StudentTrack.REGULAR,
-      status: StudentStatus.REGISTERED,
+      status: StudentStatus.ACTIVE,
       // Not available from organization-all-system today - left for a
       // coordinator to complete by hand (see the module comment above).
       previousCollege: "",

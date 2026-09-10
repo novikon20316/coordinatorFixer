@@ -20,10 +20,13 @@ import { StudentDetailModal } from "./StudentDetailModal";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
-  [StudentStatus.REGISTERED]: "bg-blue-100 text-blue-800",
-  [StudentStatus.REJECTED]: "bg-red-100 text-red-800",
-  [StudentStatus.CANCELED]: "bg-gray-200 text-gray-700",
-  [StudentStatus.GRADUATED]: "bg-purple-100 text-purple-800",
+  [StudentStatus.CANCELED_REGISTRATION]: "bg-gray-200 text-gray-700",
+  [StudentStatus.INTERNAL_MAPPING]: "bg-slate-200 text-slate-700",
+  [StudentStatus.NOT_REGULAR]: "bg-orange-100 text-orange-800",
+  [StudentStatus.CONDITIONAL]: "bg-yellow-100 text-yellow-800",
+  [StudentStatus.ON_LEAVE]: "bg-blue-100 text-blue-800",
+  [StudentStatus.GRADUATED_ELIGIBLE]: "bg-purple-100 text-purple-800",
+  [StudentStatus.GRADUATED_PENDING]: "bg-purple-50 text-purple-700",
 };
 
 let nextMilestoneId = 0;

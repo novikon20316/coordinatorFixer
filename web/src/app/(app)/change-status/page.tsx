@@ -1,24 +1,34 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HEBREW_YEAR_VALUES, he, Student, STUDENT_TRACK_VALUES, StudentTrack } from "@admin-coordinator/shared";
+import {
+  Faculty,
+  FACULTY_VALUES,
+  HEBREW_YEAR_VALUES,
+  he,
+  Student,
+  STUDENT_TRACK_VALUES,
+  StudentTrack,
+} from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
+import { StatusChangeModal } from "../../../components/StatusChangeModal";
 
 /**
- * Filters + a plain list of students - the actual status/track-change
- * action (see the coordinator's plan: moving a student from "בהשלמה" to
- * "מן המניין" once they finish their השלמות) is intentionally not built
- * yet; its exact flow is still being decided. Once it exists, this page's
- * list is where it'll live - see web/src/lib/completionCourses.ts's doc
- * comment for how that change is expected to affect the dashboard.
+ * Filters + a list of students, with a click-to-change status action (any
+ * role). A richer track-transition flow (e.g. what else should happen when
+ * a student moves off בהשלמה) is still being decided - see
+ * web/src/lib/completionCourses.ts's doc comment for how that's expected to
+ * affect the dashboard once it exists; for now this only ever changes
+ * `status` directly.
  */
 export default function ChangeStatusPage() {
-  const { faculty } = useFaculty();
+  const { faculty, setFaculty, canChangeFaculty } = useFaculty();
   const [students, setStudents] = useState<Student[]>([]);
   const [trackFilter, setTrackFilter] = useState<StudentTrack | "">("");
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Student | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeStudents(faculty, setStudents);
@@ -39,6 +49,19 @@ export default function ChangeStatusPage() {
       <h1 className="text-2xl font-bold text-gray-900">{he.changeStatus.title}</h1>
 
       <div className="flex flex-wrap items-center gap-3">
+        {canChangeFaculty && (
+          <select
+            value={faculty}
+            onChange={(e) => setFaculty(e.target.value as Faculty)}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            {FACULTY_VALUES.map((f) => (
+              <option key={f} value={f}>
+                {he.faculty[f]}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={trackFilter}
           onChange={(e) => setTrackFilter(e.target.value as StudentTrack | "")}
@@ -71,6 +94,8 @@ export default function ChangeStatusPage() {
         />
       </div>
 
+      <p className="text-xs text-gray-500">{he.changeStatus.clickToChange}</p>
+
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-500">
@@ -84,7 +109,7 @@ export default function ChangeStatusPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.map((s) => (
-              <tr key={s.id}>
+              <tr key={s.id} onClick={() => setSelected(s)} className="cursor-pointer hover:bg-gray-50">
                 <td className="px-4 py-2 font-medium text-gray-900">{s.fullName}</td>
                 <td className="px-4 py-2 text-gray-600" dir="ltr">
                   {s.idNumber || "—"}
@@ -100,7 +125,7 @@ export default function ChangeStatusPage() {
         {filtered.length === 0 && <div className="py-16 text-center text-gray-500">{he.common.noData}</div>}
       </div>
 
-      <p className="text-sm text-gray-500">{he.changeStatus.comingSoon}</p>
+      {selected && <StatusChangeModal student={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

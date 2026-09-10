@@ -171,7 +171,7 @@ export function parseSemesterGrades(
     }
     const graduatedText = getByHeader(row, headerMap, "בוגר כן/לא");
     if (!isBlank(graduatedText) && String(graduatedText).trim().startsWith("כן")) {
-      extra.status = StudentStatus.GRADUATED;
+      extra.status = StudentStatus.GRADUATED_ELIGIBLE;
     }
     const scholarship = getByHeader(row, headerMap, "מלגה");
     if (!isBlank(scholarship)) {

@@ -229,7 +229,10 @@ export const he = {
   changeStatus: {
     title: "שינוי סטטוס",
     trackFilterAll: "כל המסלולים",
-    comingSoon: "שינוי סטטוס לתלמיד יתאפשר כאן בהמשך",
+    facultyFilterAll: "כל הפקולטות",
+    clickToChange: "לחצו על שורת תלמיד/ה כדי לשנות את הסטטוס שלו/ה",
+    modalTitle: "שינוי סטטוס",
+    newStatus: "סטטוס חדש",
   },
 
   table: {
@@ -248,18 +251,27 @@ export const he = {
 
   status: {
     [StudentStatus.ACTIVE]: "פעיל",
-    [StudentStatus.REGISTERED]: "נרשם",
-    [StudentStatus.REJECTED]: "לא התקבל",
-    [StudentStatus.CANCELED]: "בוטל על ידי התלמיד",
-    [StudentStatus.GRADUATED]: "בוגר",
+    [StudentStatus.CANCELED_REGISTRATION]: "ביטל הרשמה",
+    [StudentStatus.INTERNAL_MAPPING]: "מיפוי פנימי",
+    [StudentStatus.NOT_REGULAR]: "לא מן המניין",
+    [StudentStatus.CONDITIONAL]: "על תנאי",
+    [StudentStatus.ON_LEAVE]: "בחופשה",
+    [StudentStatus.GRADUATED_ELIGIBLE]: "בוגר סיים טופס טיולים וזכאי לתואר",
+    [StudentStatus.GRADUATED_PENDING]: "בוגר בטופס טיולים לקראת זכאות לתואר",
   } as Record<StudentStatus, string>,
 
+  // Meanings not yet provided for the 8-value status list above - left
+  // blank rather than guessing at wrong descriptions; fill in once they
+  // arrive (see status.ts's module comment).
   statusDescription: {
-    [StudentStatus.ACTIVE]: "תלמיד שהחל ללמוד במכללה",
-    [StudentStatus.REGISTERED]: "התלמיד נמצא כרגע בוועדת קבלה שתקבע האם הוא כשיר ללמוד",
-    [StudentStatus.REJECTED]: "ממוצע ציונים מתחת ל-85 או שאין לתלמיד רקע בתחום",
-    [StudentStatus.CANCELED]: "התלמיד חזר בו או שהרכז ביטל את מועמדותו",
-    [StudentStatus.GRADUATED]: "התלמיד סיים את התואר בהצלחה",
+    [StudentStatus.ACTIVE]: "",
+    [StudentStatus.CANCELED_REGISTRATION]: "",
+    [StudentStatus.INTERNAL_MAPPING]: "",
+    [StudentStatus.NOT_REGULAR]: "",
+    [StudentStatus.CONDITIONAL]: "",
+    [StudentStatus.ON_LEAVE]: "",
+    [StudentStatus.GRADUATED_ELIGIBLE]: "",
+    [StudentStatus.GRADUATED_PENDING]: "",
   } as Record<StudentStatus, string>,
 
   degreeType: {

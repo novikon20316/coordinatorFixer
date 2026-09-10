@@ -4,21 +4,40 @@
  * in `shared/src/i18n` without touching stored data or business logic.
  */
 
+/**
+ * The college's own 8-value status vocabulary (given 2026-09, meanings to
+ * follow) - replaces an earlier, narrower 5-value set (ACTIVE/REGISTERED/
+ * REJECTED/CANCELED/GRADUATED). Candidates (see types/candidate.ts) now own
+ * the admissions-review lifecycle a Student's old REGISTERED value used to
+ * cover, so a newly created Student starts ACTIVE instead.
+ */
 export enum StudentStatus {
   ACTIVE = "ACTIVE", // פעיל
-  REGISTERED = "REGISTERED", // נרשם
-  REJECTED = "REJECTED", // לא התקבל
-  CANCELED = "CANCELED", // בוטל על ידי התלמיד
-  GRADUATED = "GRADUATED", // בוגר
+  CANCELED_REGISTRATION = "CANCELED_REGISTRATION", // ביטל הרשמה
+  INTERNAL_MAPPING = "INTERNAL_MAPPING", // מיפוי פנימי
+  NOT_REGULAR = "NOT_REGULAR", // לא מן המניין
+  CONDITIONAL = "CONDITIONAL", // על תנאי
+  ON_LEAVE = "ON_LEAVE", // בחופשה
+  GRADUATED_ELIGIBLE = "GRADUATED_ELIGIBLE", // בוגר סיים טופס טיולים וזכאי לתואר
+  GRADUATED_PENDING = "GRADUATED_PENDING", // בוגר בטופס טיולים לקראת זכאות לתואר
 }
 
 export const STUDENT_STATUS_VALUES: StudentStatus[] = [
   StudentStatus.ACTIVE,
-  StudentStatus.REGISTERED,
-  StudentStatus.REJECTED,
-  StudentStatus.CANCELED,
-  StudentStatus.GRADUATED,
+  StudentStatus.CANCELED_REGISTRATION,
+  StudentStatus.INTERNAL_MAPPING,
+  StudentStatus.NOT_REGULAR,
+  StudentStatus.CONDITIONAL,
+  StudentStatus.ON_LEAVE,
+  StudentStatus.GRADUATED_ELIGIBLE,
+  StudentStatus.GRADUATED_PENDING,
 ];
+
+/** Either "בוגר" status counts for the dashboard's Graduates tab and the
+ *  Reports page - see dashboard/page.tsx and reports/page.tsx. */
+export function isGraduatedStatus(status: StudentStatus): boolean {
+  return status === StudentStatus.GRADUATED_ELIGIBLE || status === StudentStatus.GRADUATED_PENDING;
+}
 
 // A candidate's admissions-committee lifecycle - separate from StudentStatus
 // since a Candidate (see types/candidate.ts) is a distinct record from a

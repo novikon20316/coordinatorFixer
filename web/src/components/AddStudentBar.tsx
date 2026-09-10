@@ -32,9 +32,9 @@ export function AddStudentBar({ faculty, onCreated }: { faculty: Faculty; onCrea
         faculty,
         track: StudentTrack.REGULAR,
         cohortYear,
-        // New candidates start under committee review, same as a freshly
-        // imported row (see he.statusDescription for StudentStatus.REGISTERED).
-        status: StudentStatus.REGISTERED,
+        // Admissions review now lives on the separate Candidate record (see
+        // types/candidate.ts) - a manually added Student starts ACTIVE.
+        status: StudentStatus.ACTIVE,
         // Not collected at intake - a coordinator fills these in later via
         // the card's "more details" view.
         previousCollege: "",

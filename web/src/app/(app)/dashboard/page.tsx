@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Candidate, HEBREW_YEAR_VALUES, he, Student, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
+import { Candidate, HEBREW_YEAR_VALUES, he, isGraduatedStatus, Student, StudentTrack } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
 import { AddStudentBar } from "../../../components/AddStudentBar";
@@ -15,7 +15,7 @@ import { useFaculty } from "../../../context/FacultyContext";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
-// on (see StudentStatus.GRADUATED).
+// on (see isGraduatedStatus).
 const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
 
@@ -53,8 +53,8 @@ export default function DashboardPage() {
   const visibleStudents = useMemo(() => {
     const byView =
       view === GRADUATED_VIEW
-        ? students.filter((s) => s.status === StudentStatus.GRADUATED)
-        : students.filter((s) => s.track === view && s.status !== StudentStatus.GRADUATED);
+        ? students.filter((s) => isGraduatedStatus(s.status))
+        : students.filter((s) => s.track === view && !isGraduatedStatus(s.status));
     return cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
   }, [students, view, cohortFilter]);
 
