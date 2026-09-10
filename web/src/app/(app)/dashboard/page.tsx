@@ -1,36 +1,63 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Faculty, HEBREW_YEAR_VALUES, he, Student, StudentTrack } from "@admin-coordinator/shared";
+import { Candidate, Faculty, HEBREW_YEAR_VALUES, he, Student, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
 import { AddStudentBar } from "../../../components/AddStudentBar";
 import { StudentsImportModal } from "../../../components/StudentsImportModal";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
 import { subscribeStudents } from "../../../data/studentsRepository";
+import { subscribeCandidates } from "../../../data/candidatesRepository";
 import { parseSemesterGrades } from "../../../lib/import/parseSemesterGrades";
 import { parseRoster } from "../../../lib/import/parseRoster";
 
 // Faculty selection will become a real picker once additional faculties exist.
 const CURRENT_FACULTY = Faculty.DATA_SCIENCE;
 
+// A third view alongside the two real tracks - a graduated student shows
+// here instead of under their track, regardless of which track they were
+// on (see StudentStatus.GRADUATED).
+const GRADUATED_VIEW = "GRADUATED" as const;
+type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
+
 export default function DashboardPage() {
-  const [track, setTrack] = useState<StudentTrack>(StudentTrack.REGULAR);
+  const [view, setView] = useState<DashboardView>(StudentTrack.REGULAR);
   const [students, setStudents] = useState<Student[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [showImport, setShowImport] = useState(false);
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeStudents(CURRENT_FACULTY, track, setStudents);
+    const unsubscribe = subscribeStudents(CURRENT_FACULTY, setStudents);
     return unsubscribe;
-  }, [track]);
+  }, []);
 
-  const visibleStudents = useMemo(
-    () => (cohortFilter ? students.filter((s) => s.cohortYear === cohortFilter) : students),
-    [students, cohortFilter]
+  // Needed to look up a student's original candidate record for their
+  // required קורסי השלמה - see lib/completionCourses.ts.
+  useEffect(() => {
+    const unsubscribe = subscribeCandidates(CURRENT_FACULTY, setCandidates);
+    return unsubscribe;
+  }, []);
+
+  const viewOptions = useMemo(
+    () => [
+      { value: StudentTrack.REGULAR, label: he.dashboard.tabs[StudentTrack.REGULAR] },
+      { value: StudentTrack.COMPLETION, label: he.dashboard.tabs[StudentTrack.COMPLETION] },
+      { value: GRADUATED_VIEW, label: he.dashboard.graduatesTab },
+    ],
+    []
   );
+
+  const visibleStudents = useMemo(() => {
+    const byView =
+      view === GRADUATED_VIEW
+        ? students.filter((s) => s.status === StudentStatus.GRADUATED)
+        : students.filter((s) => s.track === view && s.status !== StudentStatus.GRADUATED);
+    return cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
+  }, [students, view, cohortFilter]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,7 +90,7 @@ export default function DashboardPage() {
       <AddStudentBar faculty={CURRENT_FACULTY} onCreated={() => {}} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <TrackTabs value={track} onChange={setTrack} />
+        <TrackTabs value={view} onChange={setView} options={viewOptions} />
         <select
           value={cohortFilter}
           onChange={(e) => setCohortFilter(e.target.value)}
@@ -77,7 +104,7 @@ export default function DashboardPage() {
           ))}
         </select>
       </div>
-      <StudentsCardGrid students={visibleStudents} />
+      <StudentsCardGrid students={visibleStudents} candidates={candidates} />
 
       {showImport && <StudentsImportModal onClose={() => setShowImport(false)} onImported={() => {}} />}
 

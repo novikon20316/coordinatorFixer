@@ -28,7 +28,16 @@ const STATUS_STYLES: Record<StudentStatus, string> = {
 
 let nextMilestoneId = 0;
 
-export function StudentCard({ student }: { student: Student }) {
+export function StudentCard({
+  student,
+  requiredCompletionCourses = [],
+}: {
+  student: Student;
+  /** קורסי השלמה this student's original candidate record marked as
+   *  required (only when that candidate was admitted "על תנאי") - see
+   *  web/src/lib/completionCourses.ts. */
+  requiredCompletionCourses?: { name: string; grade?: number | string }[];
+}) {
   // Local draft, seeded once from the live doc and not re-synced from props
   // afterwards - subscribeStudents' onSnapshot would otherwise clobber
   // whatever the coordinator is mid-typing every time this card's own PATCH
@@ -119,6 +128,19 @@ export function StudentCard({ student }: { student: Student }) {
           {he.status[student.status]}
         </span>
       </div>
+
+      {requiredCompletionCourses.length > 0 && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <h4 className="mb-2 text-xs font-semibold text-amber-800">{he.studentCard.requiredCompletionCourses}</h4>
+          <div className="flex flex-wrap gap-2">
+            {requiredCompletionCourses.map((c, i) => (
+              <span key={i} className="rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-gray-800">
+                {c.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-lg border border-gray-100 bg-gray-50 p-3">
         <h4 className="mb-2 text-xs font-semibold text-gray-700">{he.studentCard.projectSection}</h4>

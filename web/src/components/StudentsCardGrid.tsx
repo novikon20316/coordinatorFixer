@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { he, Student } from "@admin-coordinator/shared";
+import { Candidate, he, Student } from "@admin-coordinator/shared";
 import { StudentCard } from "./StudentCard";
+import { findRequiredCompletionCourses } from "../lib/completionCourses";
 
-export function StudentsCardGrid({ students }: { students: Student[] }) {
+export function StudentsCardGrid({ students, candidates = [] }: { students: Student[]; candidates?: Candidate[] }) {
   const [search, setSearch] = useState("");
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
   // ordered by name rather than Firestore's arbitrary insertion order.
@@ -46,7 +47,7 @@ export function StudentsCardGrid({ students }: { students: Student[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((s) => (
-            <StudentCard key={s.id} student={s} />
+            <StudentCard key={s.id} student={s} requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)} />
           ))}
         </div>
       )}

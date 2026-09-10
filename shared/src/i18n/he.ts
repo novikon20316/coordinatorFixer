@@ -91,6 +91,7 @@ export const he = {
     cohortFilterAll: "כל המחזורים",
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
+    graduatesTab: "בוגרים",
   },
 
   studentForm: {
@@ -134,6 +135,7 @@ export const he = {
       B: "סמסטר ב׳",
     } as Record<"A" | "B", string>,
     notes: "הערות",
+    requiredCompletionCourses: "קורסי השלמה נדרשים",
     moreDetails: "פרטים נוספים",
     clearanceForm: "פתיחת טופס סילוקין",
   },
@@ -200,6 +202,12 @@ export const he = {
     confirming: "מייבא...",
     cancel: "ביטול",
     resultSummary: "יובאו/עודכנו {count} רשומות",
+  },
+
+  changeStatus: {
+    title: "שינוי סטטוס",
+    trackFilterAll: "כל המסלולים",
+    comingSoon: "שינוי סטטוס לתלמיד יתאפשר כאן בהמשך",
   },
 
   table: {

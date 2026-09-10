@@ -1,27 +1,27 @@
 "use client";
 
-import { he, STUDENT_TRACK_VALUES, StudentTrack } from "@admin-coordinator/shared";
-
-export function TrackTabs({
+export function TrackTabs<T extends string>({
   value,
   onChange,
+  options,
 }: {
-  value: StudentTrack;
-  onChange: (track: StudentTrack) => void;
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string }[];
 }) {
   return (
     <div className="flex gap-1 rounded-lg bg-gray-100 p-1 w-fit">
-      {STUDENT_TRACK_VALUES.map((track) => {
-        const active = track === value;
+      {options.map((opt) => {
+        const active = opt.value === value;
         return (
           <button
-            key={track}
-            onClick={() => onChange(track)}
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
             className={`rounded-md px-5 py-2 text-sm font-semibold transition-colors ${
               active ? "bg-blue-700 text-white" : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            {he.dashboard.tabs[track]}
+            {opt.label}
           </button>
         );
       })}
