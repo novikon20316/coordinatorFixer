@@ -48,6 +48,7 @@ export const he = {
     reports: "דוחות",
     changeStatus: "שינוי סטטוס",
     coordinators: "ניהול רכזים",
+    facultyFilter: "פקולטה מוצגת",
   },
 
   coordinators: {
@@ -202,6 +203,27 @@ export const he = {
     confirming: "מייבא...",
     cancel: "ביטול",
     resultSummary: "יובאו/עודכנו {count} רשומות",
+  },
+
+  reports: {
+    title: "דוחות",
+    balanceReportTitle: "מאזן חובות",
+    balanceReportDescription: "בחרו מחזור להורדת קובץ Excel עם רשימת התלמידים שלו ומצבם האקדמי.",
+    cohortLabel: "מחזור",
+    download: "הורד דוח",
+    noStudents: "אין תלמידים במחזור זה",
+    columns: {
+      cohortLabel: "מחזור",
+      track: "מסלול",
+      status: "סטטוס",
+      wasEverCompletion: "האם היה בהשלמה",
+      coreCurriculumProgress: "מקצועות ליבה שהושלמו",
+      finalGrade: "ציון סופי",
+      projectTitle: "שם הפרויקט",
+      supervisorName: "שם המנחה",
+    },
+    yes: "כן",
+    no: "לא",
   },
 
   changeStatus: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Candidate, Faculty, HEBREW_YEAR_VALUES, he, Student, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
+import { Candidate, HEBREW_YEAR_VALUES, he, Student, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
 import { AddStudentBar } from "../../../components/AddStudentBar";
@@ -11,9 +11,7 @@ import { subscribeStudents } from "../../../data/studentsRepository";
 import { subscribeCandidates } from "../../../data/candidatesRepository";
 import { parseSemesterGrades } from "../../../lib/import/parseSemesterGrades";
 import { parseRoster } from "../../../lib/import/parseRoster";
-
-// Faculty selection will become a real picker once additional faculties exist.
-const CURRENT_FACULTY = Faculty.DATA_SCIENCE;
+import { useFaculty } from "../../../context/FacultyContext";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
@@ -22,6 +20,7 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
 
 export default function DashboardPage() {
+  const { faculty } = useFaculty();
   const [view, setView] = useState<DashboardView>(StudentTrack.REGULAR);
   const [students, setStudents] = useState<Student[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -31,16 +30,16 @@ export default function DashboardPage() {
   const [showRosterImport, setShowRosterImport] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeStudents(CURRENT_FACULTY, setStudents);
+    const unsubscribe = subscribeStudents(faculty, setStudents);
     return unsubscribe;
-  }, []);
+  }, [faculty]);
 
   // Needed to look up a student's original candidate record for their
   // required קורסי השלמה - see lib/completionCourses.ts.
   useEffect(() => {
-    const unsubscribe = subscribeCandidates(CURRENT_FACULTY, setCandidates);
+    const unsubscribe = subscribeCandidates(faculty, setCandidates);
     return unsubscribe;
-  }, []);
+  }, [faculty]);
 
   const viewOptions = useMemo(
     () => [
@@ -87,7 +86,7 @@ export default function DashboardPage() {
 
       {/* No manual refetch after adding/importing: subscribeStudents' onSnapshot
           listener above already receives newly created docs in real time. */}
-      <AddStudentBar faculty={CURRENT_FACULTY} onCreated={() => {}} />
+      <AddStudentBar faculty={faculty} onCreated={() => {}} />
 
       <div className="flex flex-wrap items-center gap-3">
         <TrackTabs value={view} onChange={setView} options={viewOptions} />
@@ -113,7 +112,7 @@ export default function DashboardPage() {
           title={he.dashboard.importGrades}
           yearLabel={he.studentForm.cohortYear}
           parseSheet={(rows, year) =>
-            parseSemesterGrades(rows, { cohortYear: year, faculty: CURRENT_FACULTY, existing: students })
+            parseSemesterGrades(rows, { cohortYear: year, faculty, existing: students })
           }
           onClose={() => setShowGradesImport(false)}
           onDone={() => {}}
@@ -124,7 +123,7 @@ export default function DashboardPage() {
         <ImportReviewModal
           title={he.dashboard.importRoster}
           yearLabel={he.studentForm.cohortYear}
-          parseSheet={(rows, year) => parseRoster(rows, { asOfYear: year, faculty: CURRENT_FACULTY, existing: students })}
+          parseSheet={(rows, year) => parseRoster(rows, { asOfYear: year, faculty, existing: students })}
           onClose={() => setShowRosterImport(false)}
           onDone={() => {}}
         />

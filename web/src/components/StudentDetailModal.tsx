@@ -67,6 +67,11 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
           background,
           cohortYear: cohortYear || undefined,
           track,
+          // Sticky historical flag for the Reports page's "האם היה בהשלמה"
+          // column - once true, stays true even after track moves off
+          // COMPLETION (see the field's own doc comment in types/student.ts).
+          wasEverCompletion:
+            student.wasEverCompletion || student.track === StudentTrack.COMPLETION || track === StudentTrack.COMPLETION,
         }),
       });
       onClose();

@@ -23,6 +23,13 @@ export function addHebrewYears(year: HebrewYear, n: number): HebrewYear {
   return result;
 }
 
+/** The department's own sequential "מחזור" numbering, counted from
+ *  תשפ"ג = מחזור 1 (see the coordinator's own numbering, used e.g. on the
+ *  Reports page). */
+export function cohortNumber(year: HebrewYear): number {
+  return HEBREW_YEAR_VALUES.indexOf(year) + 1;
+}
+
 /** Where a student who started in `cohortYear` stands as of `asOfYear`
  *  (defaults to the current Hebrew year) - the program is 2 years long, so a
  *  cohort is in year 1 the year it starts, year 2 the year after, and

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { he } from "@admin-coordinator/shared";
 import { useAuth } from "../../context/AuthContext";
+import { FacultyProvider } from "../../context/FacultyContext";
 import { SideMenu } from "../../components/SideMenu";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -41,9 +42,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-row">
-      <SideMenu />
-      <main className="flex-1 p-8">{children}</main>
-    </div>
+    <FacultyProvider>
+      <div className="flex min-h-screen flex-row">
+        <SideMenu />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    </FacultyProvider>
   );
 }

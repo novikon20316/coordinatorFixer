@@ -1,18 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Faculty,
-  HEBREW_YEAR_VALUES,
-  he,
-  Student,
-  STUDENT_TRACK_VALUES,
-  StudentTrack,
-} from "@admin-coordinator/shared";
+import { HEBREW_YEAR_VALUES, he, Student, STUDENT_TRACK_VALUES, StudentTrack } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
-
-// Matches the dashboard's own CURRENT_FACULTY scoping - see that page.
-const CURRENT_FACULTY = Faculty.DATA_SCIENCE;
+import { useFaculty } from "../../../context/FacultyContext";
 
 /**
  * Filters + a plain list of students - the actual status/track-change
@@ -23,15 +14,16 @@ const CURRENT_FACULTY = Faculty.DATA_SCIENCE;
  * comment for how that change is expected to affect the dashboard.
  */
 export default function ChangeStatusPage() {
+  const { faculty } = useFaculty();
   const [students, setStudents] = useState<Student[]>([]);
   const [trackFilter, setTrackFilter] = useState<StudentTrack | "">("");
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const unsubscribe = subscribeStudents(CURRENT_FACULTY, setStudents);
+    const unsubscribe = subscribeStudents(faculty, setStudents);
     return unsubscribe;
-  }, []);
+  }, [faculty]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

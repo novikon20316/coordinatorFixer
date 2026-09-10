@@ -78,6 +78,13 @@ export interface Student {
    *  yearOfStudy) instead of storing a year-of-study snapshot that would go
    *  stale as Hebrew years roll over. */
   cohortYear?: HebrewYear;
+  /** True once this student has ever been on the COMPLETION track
+   *  ("בהשלמה"), even after a coordinator later moves them to REGULAR
+   *  ("מן המניין") once they finish their קורסי השלמה - `track` alone only
+   *  reflects the current state, so this is set (and never unset) the
+   *  moment a save observes COMPLETION on either side of the change (see
+   *  StudentDetailModal.tsx). Drives the "האם היה בהשלמה" report column. */
+  wasEverCompletion?: boolean;
   /** Raw per-semester grades as reported in the department's own grade
    *  sheets, one entry per (yearOfStudy, semester) - see SemesterRecord.
    *  Deliberately NOT auto-mapped into courseCategories below: course names

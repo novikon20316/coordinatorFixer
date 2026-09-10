@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { he, UserRole } from "@admin-coordinator/shared";
+import { Faculty, FACULTY_VALUES, he, UserRole } from "@admin-coordinator/shared";
 import { useAuth } from "../context/AuthContext";
+import { useFaculty } from "../context/FacultyContext";
 
 const ITEMS = [
   { href: "/dashboard", label: he.menu.overview },
@@ -15,6 +16,7 @@ const ITEMS = [
 export function SideMenu() {
   const pathname = usePathname();
   const { logout, profile } = useAuth();
+  const { faculty, setFaculty, canChangeFaculty } = useFaculty();
 
   const items =
     profile?.role === UserRole.ADMIN
@@ -26,6 +28,24 @@ export function SideMenu() {
       <div className="px-5 py-6">
         <span className="text-lg font-bold text-blue-900">{he.app.name}</span>
       </div>
+      {canChangeFaculty && (
+        <div className="px-3 pb-4">
+          <label className="flex flex-col gap-1 text-xs text-gray-500">
+            {he.menu.facultyFilter}
+            <select
+              value={faculty}
+              onChange={(e) => setFaculty(e.target.value as Faculty)}
+              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+            >
+              {FACULTY_VALUES.map((f) => (
+                <option key={f} value={f}>
+                  {he.faculty[f]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       <nav className="flex flex-1 flex-col gap-1 px-3">
         {items.map((item) => {
           const active = pathname?.startsWith(item.href);
