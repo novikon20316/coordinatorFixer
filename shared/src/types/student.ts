@@ -1,4 +1,5 @@
 import { DegreeType, Faculty, StudentStatus, StudentTrack } from "../constants/status";
+import { HebrewYear } from "../constants/hebrewYear";
 
 /** One entry in a course-completion category - either a checked-off catalog
  *  course (see CourseCompletionCategory.entries for the fixed-catalog case)
@@ -40,6 +41,29 @@ export interface MilestoneProgress {
   done: boolean;
 }
 
+/** One course/grade pair as reported in a department grade sheet for one
+ *  semester - see SemesterRecord. `grade` is left as string|number since a
+ *  handful of source files use text like "טרם קיבל ציון" (not yet graded)
+ *  instead of a number. */
+export interface SemesterCourseGrade {
+  name: string;
+  grade?: number | string;
+}
+
+/** One semester's worth of raw, faithfully-imported grades for a student -
+ *  see the module comment on `academicHistory` below for why this is kept
+ *  separate from courseCategories. `hebrewYear` is always derived from the
+ *  student's cohortYear + yearOfStudy (see constants/hebrewYear.ts), not
+ *  copied from whatever a source file's own header happened to print, since
+ *  those have been observed to carry stale copy-paste labels. */
+export interface SemesterRecord {
+  yearOfStudy: 1 | 2;
+  semester: "A" | "B";
+  hebrewYear: HebrewYear;
+  courses: SemesterCourseGrade[];
+  semesterAverage?: number;
+}
+
 export interface Student {
   id: string;
   fullName: string;
@@ -48,6 +72,26 @@ export interface Student {
   faculty: Faculty;
   track: StudentTrack;
   status: StudentStatus;
+
+  /** The Hebrew year this student started the program (מחזור) - drives the
+   *  computed "year of study" badge (see constants/hebrewYear.ts's
+   *  yearOfStudy) instead of storing a year-of-study snapshot that would go
+   *  stale as Hebrew years roll over. */
+  cohortYear?: HebrewYear;
+  /** Raw per-semester grades as reported in the department's own grade
+   *  sheets, one entry per (yearOfStudy, semester) - see SemesterRecord.
+   *  Deliberately NOT auto-mapped into courseCategories below: course names
+   *  vary slightly across years/files, so blind fuzzy-matching risked
+   *  silently marking the wrong graduation requirement complete. This is the
+   *  faithful source-of-record a coordinator reads while filling in
+   *  courseCategories themselves. */
+  academicHistory?: SemesterRecord[];
+  /** Free-text home for imported remarks that don't fit a typed field -
+   *  scholarship notes, dropout date, admission-committee rationale, etc. */
+  notes?: string;
+  /** Set when this record was created via the Candidate "promote" action -
+   *  see types/candidate.ts - points back at the originating Candidate. */
+  candidateId?: string;
 
   /** שם הפרויקט/התזה */
   projectTitle?: string;

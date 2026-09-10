@@ -9,8 +9,11 @@ import {
   he,
   isCourseworkComplete,
   MilestoneProgress,
+  SemesterRecord,
   Student,
   StudentStatus,
+  syncCourseCategoriesFromHistory,
+  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 import { StudentDetailModal } from "./StudentDetailModal";
@@ -20,7 +23,10 @@ const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.REGISTERED]: "bg-blue-100 text-blue-800",
   [StudentStatus.REJECTED]: "bg-red-100 text-red-800",
   [StudentStatus.CANCELED]: "bg-gray-200 text-gray-700",
+  [StudentStatus.GRADUATED]: "bg-purple-100 text-purple-800",
 };
+
+let nextMilestoneId = 0;
 
 export function StudentCard({ student }: { student: Student }) {
   // Local draft, seeded once from the live doc and not re-synced from props
@@ -32,8 +38,11 @@ export function StudentCard({ student }: { student: Student }) {
   const [milestones, setMilestones] = useState<MilestoneProgress[]>(
     () => student.milestones ?? buildDefaultMilestones(student.faculty)
   );
-  const [courseCategories, setCourseCategories] = useState<CourseCompletionCategory[]>(
-    () => student.courseCategories ?? buildDefaultCourseCategories(student.faculty)
+  const [courseCategories, setCourseCategories] = useState<CourseCompletionCategory[]>(() =>
+    syncCourseCategoriesFromHistory(
+      student.courseCategories ?? buildDefaultCourseCategories(student.faculty),
+      student.academicHistory
+    )
   );
   const [projectTitle, setProjectTitle] = useState(student.projectTitle ?? "");
   const [supervisorName, setSupervisorName] = useState(student.supervisorName ?? "");
@@ -57,6 +66,32 @@ export function StudentCard({ student }: { student: Student }) {
     save({ milestones: next });
   }
 
+  function renameMilestone(key: string, nameHe: string) {
+    const next = milestones.map((m) => (m.key === key ? { ...m, nameHe } : m));
+    setMilestones(next);
+  }
+
+  function commitMilestones() {
+    save({ milestones });
+  }
+
+  // Project requirements (and so the milestone checklist) vary per project
+  // even when two students' project titles happen to match - milestones
+  // live per-student rather than by a shared project catalog, so the
+  // coordinator can freely add/rename/remove entries to match this
+  // student's actual project.
+  function addMilestone() {
+    const next = [...milestones, { key: `custom_${nextMilestoneId++}`, nameHe: "", nameEn: "", done: false }];
+    setMilestones(next);
+    save({ milestones: next });
+  }
+
+  function removeMilestone(key: string) {
+    const next = milestones.filter((m) => m.key !== key);
+    setMilestones(next);
+    save({ milestones: next });
+  }
+
   function updateCategory(categoryKey: string, entries: CourseCompletionEntry[]) {
     const next = courseCategories.map((c) => (c.key === categoryKey ? { ...c, entries } : c));
     setCourseCategories(next);
@@ -73,6 +108,12 @@ export function StudentCard({ student }: { student: Student }) {
           <p className="text-xs text-gray-500" dir="ltr">
             {student.idNumber}
           </p>
+          {student.cohortYear && (
+            <p className="mt-1 text-xs text-gray-500">
+              {he.studentCard.cohortYear} {student.cohortYear} ·{" "}
+              {he.studentCard.yearOfStudy[String(yearOfStudy(student.cohortYear)) as "1" | "2" | "GRADUATED"]}
+            </p>
+          )}
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[student.status]}`}>
           {he.status[student.status]}
@@ -98,16 +139,29 @@ export function StudentCard({ student }: { student: Student }) {
           />
         </div>
 
-        {milestones.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+        <div className="mt-3">
+          <h5 className="mb-1 text-xs font-semibold text-gray-500">{he.studentCard.milestones}</h5>
+          <div className="flex flex-col gap-1">
             {milestones.map((m) => (
-              <label key={m.key} className="flex items-center gap-1.5 text-sm text-gray-700">
+              <div key={m.key} className="flex items-center gap-1.5">
                 <input type="checkbox" checked={m.done} onChange={() => toggleMilestone(m.key)} />
-                {m.nameHe}
-              </label>
+                <input
+                  value={m.nameHe}
+                  onChange={(e) => renameMilestone(m.key, e.target.value)}
+                  onBlur={commitMilestones}
+                  placeholder={he.studentCard.milestoneNamePlaceholder}
+                  className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+                />
+                <button onClick={() => removeMilestone(m.key)} className="text-xs text-red-600 hover:underline">
+                  {he.studentCard.removeMilestone}
+                </button>
+              </div>
             ))}
           </div>
-        )}
+          <button onClick={addMilestone} className="mt-1.5 text-xs font-medium text-blue-700 hover:underline">
+            + {he.studentCard.addMilestone}
+          </button>
+        </div>
 
         <label className="mt-3 flex w-32 flex-col gap-1 text-xs text-gray-600">
           {he.studentCard.finalGrade}
@@ -126,6 +180,8 @@ export function StudentCard({ student }: { student: Student }) {
       {courseCategories.map((category) => (
         <CourseCategorySection key={category.key} category={category} onChange={(entries) => updateCategory(category.key, entries)} />
       ))}
+
+      <AcademicHistorySection history={student.academicHistory} />
 
       {saveError && <p className="text-xs text-red-600">{saveError}</p>}
 
@@ -231,6 +287,41 @@ function CourseCategorySection({
           + {he.studentCard.addCourse}
         </button>
       )}
+    </section>
+  );
+}
+
+/** Read-only view of a student's raw, imported per-semester grades - kept
+ *  separate from the editable CourseCategorySection above by design (see
+ *  the module comment on Student.academicHistory in shared/src/types/student.ts). */
+function AcademicHistorySection({ history }: { history?: SemesterRecord[] }) {
+  if (!history || history.length === 0) return null;
+
+  const sorted = [...history].sort((a, b) =>
+    a.yearOfStudy !== b.yearOfStudy ? a.yearOfStudy - b.yearOfStudy : a.semester.localeCompare(b.semester)
+  );
+
+  return (
+    <section className="rounded-lg border border-gray-100 p-3">
+      <h4 className="mb-2 text-xs font-semibold text-gray-700">{he.studentCard.academicHistorySection}</h4>
+      <div className="flex flex-col gap-3">
+        {sorted.map((record) => (
+          <div key={`${record.yearOfStudy}-${record.semester}-${record.hebrewYear}`}>
+            <p className="mb-1 text-xs font-medium text-gray-600">
+              {he.studentCard.yearOfStudy[String(record.yearOfStudy) as "1" | "2"]} · {he.studentCard.semesterLabel[record.semester]} ·{" "}
+              {record.hebrewYear}
+              {record.semesterAverage != null && ` · ${he.studentCard.semesterAverage}: ${record.semesterAverage}`}
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-700">
+              {record.courses.map((c, i) => (
+                <span key={i} className="rounded-md bg-gray-50 px-2 py-0.5">
+                  {c.name}: {c.grade ?? "—"}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

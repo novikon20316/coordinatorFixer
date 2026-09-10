@@ -52,6 +52,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Admissions candidates - same access shape as students above: readable
+    // by coordinators/admin for the Candidates dashboard, every write goes
+    // through the server (see server/src/services/candidates.service.ts).
+    match /candidates/{candidateId} {
+      allow read: if isCoordinatorOrAdmin();
+      allow write: if false;
+    }
+
     // A signed-in user may read only their own profile (needed to resolve
     // their own role/isActive above) - not the full user directory, which
     // this app has no legitimate client-side use for. Account creation and

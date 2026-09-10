@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { DEGREE_TYPE_VALUES, DegreeType, he, Student, StudentStatus } from "@admin-coordinator/shared";
+import {
+  DEGREE_TYPE_VALUES,
+  DegreeType,
+  he,
+  HEBREW_YEAR_VALUES,
+  HebrewYear,
+  STUDENT_TRACK_VALUES,
+  Student,
+  StudentStatus,
+  StudentTrack,
+} from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
@@ -9,6 +19,7 @@ const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.REGISTERED]: "bg-blue-100 text-blue-800",
   [StudentStatus.REJECTED]: "bg-red-100 text-red-800",
   [StudentStatus.CANCELED]: "bg-gray-200 text-gray-700",
+  [StudentStatus.GRADUATED]: "bg-purple-100 text-purple-800",
 };
 
 function Field({ label, value }: { label: string; value: string | number }) {
@@ -37,6 +48,8 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
   const [degreeType, setDegreeType] = useState<DegreeType>(student.degreeType);
   const [gpa, setGpa] = useState(student.gpa ? String(student.gpa) : "");
   const [background, setBackground] = useState(student.background);
+  const [cohortYear, setCohortYear] = useState<HebrewYear | "">(student.cohortYear ?? "");
+  const [track, setTrack] = useState<StudentTrack>(student.track);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +65,8 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
           degreeType,
           gpa: Number(gpa) || 0,
           background,
+          cohortYear: cohortYear || undefined,
+          track,
         }),
       });
       onClose();
@@ -90,7 +105,31 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
             <Field label={he.table.columns.fullName} value={student.fullName} />
             <Field label={he.studentForm.idNumber} value={student.idNumber} />
             <Field label={he.coordinators.faculty} value={he.faculty[student.faculty]} />
-            <Field label={he.studentForm.track} value={he.dashboard.tabs[student.track]} />
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.studentForm.track}
+              <select value={track} onChange={(e) => setTrack(e.target.value as StudentTrack)} className={inputClass}>
+                {STUDENT_TRACK_VALUES.map((t) => (
+                  <option key={t} value={t}>
+                    {he.dashboard.tabs[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500">
+              {he.studentForm.cohortYear}
+              <select
+                value={cohortYear}
+                onChange={(e) => setCohortYear(e.target.value as HebrewYear | "")}
+                className={inputClass}
+              >
+                <option value="">—</option>
+                {HEBREW_YEAR_VALUES.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </label>
           </Section>
 
           <Section title={he.studentDetail.academicSection}>

@@ -1,10 +1,11 @@
 import { Faculty } from "../constants/status";
 import {
+  DATA_SCIENCE_CORE_CURRICULUM_ALIASES,
   DATA_SCIENCE_CORE_CURRICULUM_COURSES,
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
   DATA_SCIENCE_PROJECT_MILESTONES,
 } from "../constants/dataScienceCurriculum";
-import { CourseCompletionCategory, MilestoneProgress } from "../types/student";
+import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord } from "../types/student";
 
 /** Builds a fresh course-completion checklist for a newly created student.
  *  Only Data Science has a known catalog today (see dataScienceCurriculum.ts)
@@ -57,4 +58,95 @@ export function isCourseCategoryComplete(category: CourseCompletionCategory): bo
 export function isCourseworkComplete(categories: CourseCompletionCategory[] | undefined): boolean {
   if (!categories || categories.length === 0) return false;
   return categories.every(isCourseCategoryComplete);
+}
+
+/**
+ * Fills in a student's course-completion checklist from their raw imported
+ * academicHistory, without ever overwriting a grade a coordinator already
+ * entered by hand. This is a pure, read-time computation (see
+ * web/src/components/StudentCard.tsx, which seeds its local draft with this
+ * rather than the raw stored categories) - nothing is written back to
+ * Firestore just from viewing a card, so it's safe to recompute on every
+ * render and works retroactively for students imported before this existed.
+ *
+ * - The fixed core-curriculum entries get their `name` normalized to the
+ *   current Hebrew catalog (see DATA_SCIENCE_CORE_CURRICULUM_ALIASES - older
+ *   records may still have the catalog's old English names, or a cohort's
+ *   own alternate spelling, stored) and their `grade` filled in when a
+ *   matching course is found in the history. `passed` is left exactly as
+ *   stored - whether a grade counts as a pass is still the coordinator's
+ *   call, not inferred here.
+ * - The free-text "core"/"elective" categories get any "קורס ליבה"/"קורס
+ *   בחירה" course found in the history appended as a new (unpassed) entry,
+ *   skipping names already present so re-running this is idempotent.
+ */
+export function syncCourseCategoriesFromHistory(
+  categories: CourseCompletionCategory[],
+  academicHistory: SemesterRecord[] | undefined
+): CourseCompletionCategory[] {
+  if (!academicHistory || academicHistory.length === 0) return categories;
+
+  const allCourses = academicHistory.flatMap((r) => r.courses);
+  function findGrade(names: string[]): number | undefined {
+    const match = allCourses.find((c) => names.includes(c.name) && typeof c.grade === "number");
+    return match ? (match.grade as number) : undefined;
+  }
+  function canonicalCoreCourseName(name: string): string {
+    if (DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(name)) return name;
+    const canonical = Object.keys(DATA_SCIENCE_CORE_CURRICULUM_ALIASES).find((c) =>
+      DATA_SCIENCE_CORE_CURRICULUM_ALIASES[c].includes(name)
+    );
+    return canonical ?? name;
+  }
+
+  return categories.map((category) => {
+    if (category.key === "core_curriculum") {
+      const entries: CourseCompletionEntry[] = category.entries.map((entry) => {
+        const canonicalName = canonicalCoreCourseName(entry.name);
+        const aliases = [canonicalName, ...(DATA_SCIENCE_CORE_CURRICULUM_ALIASES[canonicalName] ?? [])];
+        const patch: Partial<CourseCompletionEntry> = {};
+        if (canonicalName !== entry.name) patch.name = canonicalName;
+        if (entry.grade === undefined) {
+          const grade = findGrade(aliases);
+          if (grade !== undefined) patch.grade = grade;
+        }
+        return Object.keys(patch).length > 0 ? { ...entry, ...patch } : entry;
+      });
+      return entries === category.entries ? category : { ...category, entries };
+    }
+
+    if (category.key === "core" || category.key === "elective") {
+      const prefix = category.key === "core" ? "קורס ליבה" : "קורס בחירה";
+      const existingNames = new Set(category.entries.map((e) => e.name));
+      const extra: CourseCompletionEntry[] = [];
+      for (const c of allCourses) {
+        if (!c.name.startsWith(prefix) || typeof c.grade !== "number") continue;
+        if (existingNames.has(c.name)) continue;
+        existingNames.add(c.name); // also de-dupes repeat course names within the history itself
+        extra.push({ name: c.name, grade: c.grade, passed: false });
+      }
+      return extra.length > 0 ? { ...category, entries: [...category.entries, ...extra] } : category;
+    }
+
+    return category;
+  });
+}
+
+/** Merges one freshly-imported semester's grades into a student's existing
+ *  academicHistory, replacing any prior entry for the same
+ *  (yearOfStudy, semester, hebrewYear) - re-importing a file updates that
+ *  semester's block instead of appending a duplicate. */
+export function mergeAcademicHistory(
+  existing: SemesterRecord[] | undefined,
+  incoming: SemesterRecord
+): SemesterRecord[] {
+  const rest = (existing ?? []).filter(
+    (r) =>
+      !(
+        r.yearOfStudy === incoming.yearOfStudy &&
+        r.semester === incoming.semester &&
+        r.hebrewYear === incoming.hebrewYear
+      )
+  );
+  return [...rest, incoming];
 }

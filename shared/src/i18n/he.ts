@@ -1,4 +1,4 @@
-import { DegreeType, Faculty, StudentStatus, StudentTrack, UserRole } from "../constants/status";
+import { CandidateStatus, DegreeType, Faculty, StudentStatus, StudentTrack, UserRole } from "../constants/status";
 
 /**
  * Single source of truth for Hebrew display labels. When additional
@@ -44,6 +44,7 @@ export const he = {
 
   menu: {
     overview: "סקירה",
+    candidates: "מועמדים",
     reports: "דוחות",
     changeStatus: "שינוי סטטוס",
     coordinators: "ניהול רכזים",
@@ -83,8 +84,13 @@ export const he = {
     } as Record<StudentTrack, string>,
     addStudent: "הוספת תלמיד",
     importStudents: "ייבוא תלמידים",
+    importGrades: "ייבוא ציונים",
+    importRoster: "ייבוא רשימת מחזור",
     studentsListTitle: "רשימת סטודנטים",
     searchPlaceholder: "חיפוש לפי שם או ת.ז...",
+    cohortFilterAll: "כל המחזורים",
+    sortAscending: "מיון א-ת",
+    sortDescending: "מיון ת-א",
   },
 
   studentForm: {
@@ -93,15 +99,25 @@ export const he = {
     idNumberPlaceholder: "לדוגמה: 123456789",
     fullNamePlaceholder: "לדוגמה: רון כהן",
     track: "מסלול",
+    cohortYear: "מחזור",
     create: "הוסף לרשימה",
     createSuccess: "התלמיד נוסף בהצלחה",
   },
 
   studentCard: {
+    cohortYear: "מחזור",
+    yearOfStudy: {
+      1: "שנה א׳",
+      2: "שנה ב׳",
+      GRADUATED: "בוגר/ת",
+    } as Record<"1" | "2" | "GRADUATED", string>,
     projectSection: "פרויקט / תזה",
     projectTitle: "שם הפרויקט",
     supervisorName: "שם המנחה",
     milestones: "אבני דרך",
+    addMilestone: "הוסף אבן דרך",
+    milestoneNamePlaceholder: "שם אבן הדרך",
+    removeMilestone: "הסר",
     finalGrade: "ציון סופי",
     courseworkSection: "מקצועות לתואר",
     addCourse: "הוסף קורס",
@@ -110,6 +126,14 @@ export const he = {
     grade: "ציון",
     passed: "עבר/ה",
     removeCourse: "הסר",
+    academicHistorySection: "היסטוריה אקדמית",
+    academicHistoryEmpty: "לא יובאה היסטוריית ציונים",
+    semesterAverage: "ממוצע סמסטר",
+    semesterLabel: {
+      A: "סמסטר א׳",
+      B: "סמסטר ב׳",
+    } as Record<"A" | "B", string>,
+    notes: "הערות",
     moreDetails: "פרטים נוספים",
     clearanceForm: "פתיחת טופס סילוקין",
   },
@@ -133,6 +157,51 @@ export const he = {
     noRows: "לא נמצאו שורות בקובץ",
   },
 
+  candidates: {
+    title: "מועמדים",
+    addNew: "הוספת מועמד/ת",
+    applyingForYear: "מועמד/ת למחזור",
+    previousCollege: "מכללה אקדמית קודמת",
+    degreeField: "תחום התואר",
+    gpa: "ממוצע ציונים",
+    background: "רקע",
+    completionCoursesSection: "קורסי השלמה",
+    completionAverage: "ממוצע השלמות",
+    acceptanceDecision: "החלטת ועדת קבלה",
+    acceptanceDecisionOptions: {
+      REGULAR: "מן המניין",
+      CONDITIONAL: "על תנאי",
+      NOT_REGULAR: "לא מן המניין",
+      "": "טרם הוחלט",
+    } as Record<"REGULAR" | "CONDITIONAL" | "NOT_REGULAR" | "", string>,
+    committeeNotes: "חוות דעת הוועדה",
+    promote: "קבל וצרף כתלמיד/ה",
+    promoteConfirm: "לצרף את המועמד/ת כתלמיד/ה פעיל/ה במחזור שאליו הוא/היא מועמד/ת?",
+    promoteSuccess: "המועמד/ת צורף/ה כתלמיד/ה",
+    alreadyPromoted: "כבר צורף/ה כתלמיד/ה",
+    importCandidates: "ייבוא מועמדים",
+    noCandidates: "לא נוספו מועמדים",
+  },
+
+  candidateStatus: {
+    [CandidateStatus.PENDING]: "בבדיקה",
+    [CandidateStatus.ACCEPTED]: "התקבל/ה",
+    [CandidateStatus.REJECTED]: "נדחה/תה",
+    [CandidateStatus.WITHDRAWN]: "ביטל/ה מועמדות",
+  } as Record<CandidateStatus, string>,
+
+  importReview: {
+    title: "בדיקת ייבוא לפני שמירה",
+    description: "אלו הרשומות שיובאו מהקובץ. ניתן לבטל סימון שורות שלא רוצים לייבא.",
+    rowsFound: "נמצאו {count} שורות",
+    actionNew: "חדש",
+    actionUpdate: "עדכון: {name}",
+    confirm: "אישור ייבוא",
+    confirming: "מייבא...",
+    cancel: "ביטול",
+    resultSummary: "יובאו/עודכנו {count} רשומות",
+  },
+
   table: {
     columns: {
       fullName: "שם מלא",
@@ -143,6 +212,7 @@ export const he = {
       gpa: "ממוצע ציונים",
       background: "רקע התלמיד",
       status: "סטטוס",
+      cohortYear: "מחזור",
     },
   },
 
@@ -151,6 +221,7 @@ export const he = {
     [StudentStatus.REGISTERED]: "נרשם",
     [StudentStatus.REJECTED]: "לא התקבל",
     [StudentStatus.CANCELED]: "בוטל על ידי התלמיד",
+    [StudentStatus.GRADUATED]: "בוגר",
   } as Record<StudentStatus, string>,
 
   statusDescription: {
@@ -158,6 +229,7 @@ export const he = {
     [StudentStatus.REGISTERED]: "התלמיד נמצא כרגע בוועדת קבלה שתקבע האם הוא כשיר ללמוד",
     [StudentStatus.REJECTED]: "ממוצע ציונים מתחת ל-85 או שאין לתלמיד רקע בתחום",
     [StudentStatus.CANCELED]: "התלמיד חזר בו או שהרכז ביטל את מועמדותו",
+    [StudentStatus.GRADUATED]: "התלמיד סיים את התואר בהצלחה",
   } as Record<StudentStatus, string>,
 
   degreeType: {

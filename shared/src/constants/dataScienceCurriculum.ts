@@ -21,16 +21,39 @@
  * milestone list here too.
  */
 
-/** The department's 7 required core-curriculum courses (fixed catalog, checkbox-style). */
+/** The department's 7 required core-curriculum courses (fixed catalog,
+ *  checkbox-style), in Hebrew - matches the course names as the department's
+ *  own grade sheets report them (see shared/src/utils/studentDefaults.ts's
+ *  syncCourseCategoriesFromHistory, which reads a student's imported
+ *  academicHistory and fills these entries' grades in automatically). */
 export const DATA_SCIENCE_CORE_CURRICULUM_COURSES: string[] = [
-  "Machine Learning",
-  "Statistical Methods",
-  "Mathematics for Data Science",
-  "Cloud-Based Big Data Infrastructure Management and Engineering",
-  "Natural Language Processing",
-  "Deep Learning",
-  "Statistical Learning",
+  "למידת מכונה",
+  "שיטות סטטיסטיות",
+  "מתמטיקה למדעי הנתונים",
+  "ניהול והנדסת תשתיות נתוני עתק בענן",
+  "עיבוד שפה טבעית",
+  "למידה עמוקה",
+  "למידה סטטיסטית",
 ];
+
+/**
+ * Alternate spellings for each core-curriculum course, observed across
+ * different cohorts'/years' grade sheets (curriculum naming drifted a bit
+ * over time - e.g. the תשפ"ג cohort's sheet calls the same requirement
+ * "שיטות הסתברויות" instead of "שיטות סטטיסטיות") plus this catalog's old
+ * English names (courses created before 2026-09 have these baked into their
+ * stored courseCategories) - used only for matching, never for display.
+ * Keyed by the canonical Hebrew name above.
+ */
+export const DATA_SCIENCE_CORE_CURRICULUM_ALIASES: Record<string, string[]> = {
+  "למידת מכונה": ["Machine Learning"],
+  "שיטות סטטיסטיות": ["שיטות הסתברויות", "Statistical Methods"],
+  "מתמטיקה למדעי הנתונים": ["Mathematics for Data Science"],
+  "ניהול והנדסת תשתיות נתוני עתק בענן": ["Cloud-Based Big Data Infrastructure Management and Engineering"],
+  "עיבוד שפה טבעית": ["Natural Language Processing"],
+  "למידה עמוקה": ["Deep Learning"],
+  "למידה סטטיסטית": ["למידה סטיסטית", "Statistical Learning"],
+};
 
 /**
  * The other two graduation requirements, on top of the core curriculum above.

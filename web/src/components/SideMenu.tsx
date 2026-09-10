@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 
 const ITEMS = [
   { href: "/dashboard", label: he.menu.overview },
+  { href: "/candidates", label: he.menu.candidates },
   { href: "/reports", label: he.menu.reports },
   { href: "/change-status", label: he.menu.changeStatus },
 ];

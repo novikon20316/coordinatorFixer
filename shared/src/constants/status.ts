@@ -9,6 +9,7 @@ export enum StudentStatus {
   REGISTERED = "REGISTERED", // נרשם
   REJECTED = "REJECTED", // לא התקבל
   CANCELED = "CANCELED", // בוטל על ידי התלמיד
+  GRADUATED = "GRADUATED", // בוגר
 }
 
 export const STUDENT_STATUS_VALUES: StudentStatus[] = [
@@ -16,6 +17,24 @@ export const STUDENT_STATUS_VALUES: StudentStatus[] = [
   StudentStatus.REGISTERED,
   StudentStatus.REJECTED,
   StudentStatus.CANCELED,
+  StudentStatus.GRADUATED,
+];
+
+// A candidate's admissions-committee lifecycle - separate from StudentStatus
+// since a Candidate (see types/candidate.ts) is a distinct record from a
+// Student; PENDING candidates aren't students yet at all.
+export enum CandidateStatus {
+  PENDING = "PENDING", // בבדיקה
+  ACCEPTED = "ACCEPTED", // התקבל
+  REJECTED = "REJECTED", // נדחה
+  WITHDRAWN = "WITHDRAWN", // ביטל מועמדות
+}
+
+export const CANDIDATE_STATUS_VALUES: CandidateStatus[] = [
+  CandidateStatus.PENDING,
+  CandidateStatus.ACCEPTED,
+  CandidateStatus.REJECTED,
+  CandidateStatus.WITHDRAWN,
 ];
 
 export enum StudentTrack {

@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { DegreeType, Faculty, he, StudentCreateInput, StudentStatus, StudentTrack } from "@admin-coordinator/shared";
+import {
+  CURRENT_HEBREW_YEAR,
+  DegreeType,
+  Faculty,
+  he,
+  HEBREW_YEAR_VALUES,
+  HebrewYear,
+  StudentCreateInput,
+  StudentStatus,
+  StudentTrack,
+} from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 
 export function AddStudentBar({ faculty, onCreated }: { faculty: Faculty; onCreated: () => void }) {
   const [fullName, setFullName] = useState("");
   const [idNumber, setIdNumber] = useState("");
+  const [cohortYear, setCohortYear] = useState<HebrewYear>(CURRENT_HEBREW_YEAR);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,6 +31,7 @@ export function AddStudentBar({ faculty, onCreated }: { faculty: Faculty; onCrea
         idNumber,
         faculty,
         track: StudentTrack.REGULAR,
+        cohortYear,
         // New candidates start under committee review, same as a freshly
         // imported row (see he.statusDescription for StudentStatus.REGISTERED).
         status: StudentStatus.REGISTERED,
@@ -69,6 +81,17 @@ export function AddStudentBar({ faculty, onCreated }: { faculty: Faculty; onCrea
           placeholder={he.studentForm.idNumberPlaceholder}
           className={inputClass}
         />
+      </label>
+
+      <label className="flex flex-col gap-1 text-xs text-gray-600">
+        {he.studentForm.cohortYear}
+        <select value={cohortYear} onChange={(e) => setCohortYear(e.target.value as HebrewYear)} className={inputClass}>
+          {HEBREW_YEAR_VALUES.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
       </label>
 
       <button
