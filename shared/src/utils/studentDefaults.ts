@@ -73,11 +73,13 @@ export function isCourseworkComplete(categories: CourseCompletionCategory[] | un
  *   current Hebrew catalog (see DATA_SCIENCE_CORE_CURRICULUM_ALIASES - older
  *   records may still have the catalog's old English names, or a cohort's
  *   own alternate spelling, stored) and their `grade` filled in when a
- *   matching course is found in the history. `passed` is left exactly as
- *   stored - whether a grade counts as a pass is still the coordinator's
- *   call, not inferred here.
+ *   matching course is found in the history - newly filling in a grade this
+ *   way marks it passed by default, same as a coordinator typing a grade in
+ *   by hand (see StudentCard.tsx's grade input). An entry that already had a
+ *   grade keeps its stored `passed` exactly as-is, so this never re-checks a
+ *   box a coordinator deliberately unchecked.
  * - The free-text "core"/"elective" categories get any "קורס ליבה"/"קורס
- *   בחירה" course found in the history appended as a new (unpassed) entry,
+ *   בחירה" course found in the history appended as a new, passed entry,
  *   skipping names already present so re-running this is idempotent.
  */
 export function syncCourseCategoriesFromHistory(
@@ -108,7 +110,10 @@ export function syncCourseCategoriesFromHistory(
         if (canonicalName !== entry.name) patch.name = canonicalName;
         if (entry.grade === undefined) {
           const grade = findGrade(aliases);
-          if (grade !== undefined) patch.grade = grade;
+          // A synced grade defaults the course to passed, same as a
+          // coordinator typing a grade in by hand (see StudentCard.tsx) -
+          // still a real checkbox, so it can be unchecked afterward.
+          if (grade !== undefined) Object.assign(patch, { grade, passed: true });
         }
         return Object.keys(patch).length > 0 ? { ...entry, ...patch } : entry;
       });
@@ -123,7 +128,7 @@ export function syncCourseCategoriesFromHistory(
         if (!c.name.startsWith(prefix) || typeof c.grade !== "number") continue;
         if (existingNames.has(c.name)) continue;
         existingNames.add(c.name); // also de-dupes repeat course names within the history itself
-        extra.push({ name: c.name, grade: c.grade, passed: false });
+        extra.push({ name: c.name, grade: c.grade, passed: true });
       }
       return extra.length > 0 ? { ...category, entries: [...category.entries, ...extra] } : category;
     }

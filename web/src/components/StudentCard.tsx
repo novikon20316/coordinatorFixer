@@ -259,7 +259,13 @@ function CourseCategorySection({
             <input
               type="number"
               value={entry.grade ?? ""}
-              onChange={(e) => updateEntry(i, { grade: e.target.value === "" ? undefined : Number(e.target.value) })}
+              onChange={(e) => {
+                // Filling in a grade marks the course passed by default - the
+                // checkbox stays a real toggle, so a coordinator who enters a
+                // failing grade (or just disagrees) can still uncheck it.
+                const grade = e.target.value === "" ? undefined : Number(e.target.value);
+                updateEntry(i, grade !== undefined ? { grade, passed: true } : { grade });
+              }}
               placeholder={he.studentCard.grade}
               className="w-16 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
             />
