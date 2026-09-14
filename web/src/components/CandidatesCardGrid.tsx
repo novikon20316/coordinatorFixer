@@ -42,7 +42,7 @@ export function CandidatesCardGrid({ candidates, onPromoted }: { candidates: Can
           {he.candidates.noCandidates}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((c) => (
             <CandidateCard
               key={c.id}

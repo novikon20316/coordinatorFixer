@@ -57,7 +57,7 @@ export function StudentsCardGrid({ students, candidates = [] }: { students: Stud
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-gray-200 py-16 text-center text-gray-500">{he.common.noData}</div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((s) => (
             <StudentCard
               key={s.id}
