@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/candidates", label: he.menu.candidates },
   { href: "/reports", label: he.menu.reports },
   { href: "/change-status", label: he.menu.changeStatus },
+  { href: "/history", label: he.menu.history },
 ];
 
 export function SideMenu() {

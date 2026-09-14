@@ -5,6 +5,8 @@ import {
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
   DATA_SCIENCE_PROJECT_MILESTONES,
 } from "../constants/dataScienceCurriculum";
+import { HebrewYear, yearOfStudy } from "../constants/hebrewYear";
+import { he } from "../i18n/he";
 import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord } from "../types/student";
 
 /** Builds a fresh course-completion checklist for a newly created student.
@@ -15,7 +17,7 @@ export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletion
   return [
     {
       key: "core_curriculum",
-      label: "מקצועות ליבה של המחלקה",
+      label: "מקצועות חובה של המחלקה",
       fixedCatalog: true,
       requiredCount: DATA_SCIENCE_CORE_CURRICULUM_COURSES.length,
       entries: DATA_SCIENCE_CORE_CURRICULUM_COURSES.map((name) => ({ name, passed: false })),
@@ -135,6 +137,16 @@ export function syncCourseCategoriesFromHistory(
 
     return category;
   });
+}
+
+/** Label for a מחזור (cohort year) option that also names the academic year
+ *  (שנה א׳/שנה ב׳/בוגר/ת) that cohort is currently in - lets every מחזור
+ *  picker in the app (add-student, student details, cohort filters) show
+ *  the student's current academic year at a glance instead of a bare Hebrew
+ *  year the coordinator has to convert in her head. */
+export function cohortYearOptionLabel(year: HebrewYear): string {
+  const yos = yearOfStudy(year);
+  return `${year} (${he.studentCard.yearOfStudy[String(yos) as "1" | "2" | "GRADUATED"]})`;
 }
 
 /** Merges one freshly-imported semester's grades into a student's existing

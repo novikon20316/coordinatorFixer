@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Candidate, HEBREW_YEAR_VALUES, he, isGraduatedStatus, Student, StudentTrack } from "@admin-coordinator/shared";
+import {
+  Candidate,
+  cohortYearOptionLabel,
+  HEBREW_YEAR_VALUES,
+  he,
+  isGraduatedStatus,
+  Student,
+  StudentTrack,
+} from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
 import { AddStudentBar } from "../../../components/AddStudentBar";
@@ -98,7 +106,7 @@ export default function DashboardPage() {
           <option value="">{he.dashboard.cohortFilterAll}</option>
           {HEBREW_YEAR_VALUES.map((y) => (
             <option key={y} value={y}>
-              {y}
+              {cohortYearOptionLabel(y)}
             </option>
           ))}
         </select>
