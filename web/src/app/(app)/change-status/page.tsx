@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  cohortYearOptionLabel,
   Faculty,
   FACULTY_VALUES,
   HEBREW_YEAR_VALUES,
@@ -82,7 +83,7 @@ export default function ChangeStatusPage() {
           <option value="">{he.dashboard.cohortFilterAll}</option>
           {HEBREW_YEAR_VALUES.map((y) => (
             <option key={y} value={y}>
-              {y}
+              {cohortYearOptionLabel(y)}
             </option>
           ))}
         </select>
@@ -114,7 +115,7 @@ export default function ChangeStatusPage() {
                 <td className="px-4 py-2 text-gray-600" dir="ltr">
                   {s.idNumber || "—"}
                 </td>
-                <td className="px-4 py-2 text-gray-600">{s.cohortYear || "—"}</td>
+                <td className="px-4 py-2 text-gray-600">{s.cohortYear ? cohortYearOptionLabel(s.cohortYear) : "—"}</td>
                 <td className="px-4 py-2 text-gray-600">{he.dashboard.tabs[s.track]}</td>
                 <td className="px-4 py-2 text-gray-600">{he.status[s.status]}</td>
               </tr>

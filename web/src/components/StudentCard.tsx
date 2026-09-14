@@ -4,16 +4,18 @@ import { useState } from "react";
 import {
   buildDefaultCourseCategories,
   buildDefaultMilestones,
+  cohortYearOptionLabel,
   CourseCompletionCategory,
   CourseCompletionEntry,
   he,
+  isCourseCategoryComplete,
   isCourseworkComplete,
   MilestoneProgress,
   SemesterRecord,
   Student,
+  STUDENT_STATUS_VALUES,
   StudentStatus,
   syncCourseCategoriesFromHistory,
-  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 import { StudentDetailModal } from "./StudentDetailModal";
@@ -34,12 +36,19 @@ let nextMilestoneId = 0;
 export function StudentCard({
   student,
   requiredCompletionCourses = [],
+  expanded,
+  onToggleExpanded,
 }: {
   student: Student;
   /** קורסי השלמה this student's original candidate record marked as
    *  required (only when that candidate was admitted "על תנאי") - see
    *  web/src/lib/completionCourses.ts. */
   requiredCompletionCourses?: { name: string; grade?: number | string }[];
+  /** Whether this card is showing its full details - owned by the parent
+   *  grid (StudentsCardGrid) so collapsing/expanding one card doesn't
+   *  remount the others. */
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }) {
   // Local draft, seeded once from the live doc and not re-synced from props
   // afterwards - subscribeStudents' onSnapshot would otherwise clobber
@@ -59,7 +68,9 @@ export function StudentCard({
   const [projectTitle, setProjectTitle] = useState(student.projectTitle ?? "");
   const [supervisorName, setSupervisorName] = useState(student.supervisorName ?? "");
   const [finalGrade, setFinalGrade] = useState(student.finalGrade != null ? String(student.finalGrade) : "");
+  const [gpa, setGpa] = useState(student.gpa != null ? String(student.gpa) : "");
   const [showDetail, setShowDetail] = useState(false);
+  const [showMissing, setShowMissing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showClearanceComingSoon, setShowClearanceComingSoon] = useState(false);
 
@@ -110,122 +121,207 @@ export function StudentCard({
     save({ courseCategories: next });
   }
 
+  function changeStatus(status: StudentStatus) {
+    save({ status });
+  }
+
   const complete = isCourseworkComplete(courseCategories);
+  const missingCategories = courseCategories.filter((c) => !isCourseCategoryComplete(c));
+  const missingMilestones = milestones.filter((m) => !m.done);
+  const nothingMissing = missingCategories.length === 0 && missingMilestones.length === 0;
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="font-bold text-gray-900">{student.fullName}</h3>
-          <p className="text-xs text-gray-500" dir="ltr">
-            {student.idNumber}
-          </p>
-          {student.cohortYear && (
-            <p className="mt-1 text-xs text-gray-500">
-              {he.studentCard.cohortYear} {student.cohortYear} ·{" "}
-              {he.studentCard.yearOfStudy[String(yearOfStudy(student.cohortYear)) as "1" | "2" | "GRADUATED"]}
+        <button
+          type="button"
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+          aria-label={expanded ? he.studentCard.collapse : he.studentCard.expand}
+          className="flex flex-1 items-start gap-2 text-right"
+        >
+          <span
+            className={`mt-1 inline-block text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+            aria-hidden
+          >
+            ▶
+          </span>
+          <div>
+            <h3 className="font-bold text-gray-900">{student.fullName}</h3>
+            <p className="text-xs text-gray-500" dir="ltr">
+              {student.idNumber}
             </p>
-          )}
-        </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[student.status]}`}>
-          {he.status[student.status]}
-        </span>
-      </div>
-
-      {requiredCompletionCourses.length > 0 && (
-        <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <h4 className="mb-2 text-xs font-semibold text-amber-800">{he.studentCard.requiredCompletionCourses}</h4>
-          <div className="flex flex-wrap gap-2">
-            {requiredCompletionCourses.map((c, i) => (
-              <span key={i} className="rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-gray-800">
-                {c.name}
-              </span>
-            ))}
+            {student.cohortYear && (
+              <p className="mt-1 text-xs text-gray-500">
+                {he.studentCard.startYear}: {cohortYearOptionLabel(student.cohortYear)}
+              </p>
+            )}
           </div>
-        </section>
-      )}
-
-      <section className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-        <h4 className="mb-2 text-xs font-semibold text-gray-700">{he.studentCard.projectSection}</h4>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            value={projectTitle}
-            onChange={(e) => setProjectTitle(e.target.value)}
-            onBlur={() => save({ projectTitle })}
-            placeholder={he.studentCard.projectTitle}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-          />
-          <input
-            value={supervisorName}
-            onChange={(e) => setSupervisorName(e.target.value)}
-            onBlur={() => save({ supervisorName })}
-            placeholder={he.studentCard.supervisorName}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-          />
-        </div>
-
-        <div className="mt-3">
-          <h5 className="mb-1 text-xs font-semibold text-gray-500">{he.studentCard.milestones}</h5>
-          <div className="flex flex-col gap-1">
-            {milestones.map((m) => (
-              <div key={m.key} className="flex items-center gap-1.5">
-                <input type="checkbox" checked={m.done} onChange={() => toggleMilestone(m.key)} />
-                <input
-                  value={m.nameHe}
-                  onChange={(e) => renameMilestone(m.key, e.target.value)}
-                  onBlur={commitMilestones}
-                  placeholder={he.studentCard.milestoneNamePlaceholder}
-                  className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-                />
-                <button onClick={() => removeMilestone(m.key)} className="text-xs text-red-600 hover:underline">
-                  {he.studentCard.removeMilestone}
-                </button>
-              </div>
-            ))}
-          </div>
-          <button onClick={addMilestone} className="mt-1.5 text-xs font-medium text-blue-700 hover:underline">
-            + {he.studentCard.addMilestone}
-          </button>
-        </div>
-
-        <label className="mt-3 flex w-32 flex-col gap-1 text-xs text-gray-600">
-          {he.studentCard.finalGrade}
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={finalGrade}
-            onChange={(e) => setFinalGrade(e.target.value)}
-            onBlur={() => save({ finalGrade: finalGrade === "" ? undefined : Number(finalGrade) })}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
-          />
-        </label>
-      </section>
-
-      {courseCategories.map((category) => (
-        <CourseCategorySection key={category.key} category={category} onChange={(entries) => updateCategory(category.key, entries)} />
-      ))}
-
-      <AcademicHistorySection history={student.academicHistory} />
-
-      {saveError && <p className="text-xs text-red-600">{saveError}</p>}
-
-      <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
-        <button onClick={() => setShowDetail(true)} className="text-xs font-medium text-blue-700 hover:underline">
-          {he.studentCard.moreDetails}
         </button>
-        {complete &&
-          (showClearanceComingSoon ? (
-            <span className="text-xs font-medium text-gray-500">{he.common.comingSoon}</span>
-          ) : (
-            <button
-              onClick={() => setShowClearanceComingSoon(true)}
-              className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
-            >
-              {he.studentCard.clearanceForm}
-            </button>
+        <select
+          value={student.status}
+          onChange={(e) => changeStatus(e.target.value as StudentStatus)}
+          className={`shrink-0 rounded-full border-0 px-3 py-1 text-xs font-semibold ${STATUS_STYLES[student.status]}`}
+        >
+          {STUDENT_STATUS_VALUES.map((s) => (
+            <option key={s} value={s}>
+              {he.status[s]}
+            </option>
           ))}
+        </select>
       </div>
+
+      {expanded && (
+        <div className="flex flex-col gap-4 border-t border-gray-100 pt-3">
+          <label className="flex w-48 flex-col gap-1 text-xs text-gray-600">
+            {he.studentCard.degreeGpa}
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={gpa}
+              onChange={(e) => setGpa(e.target.value)}
+              onBlur={() => save({ gpa: gpa === "" ? 0 : Number(gpa) })}
+              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm font-semibold"
+            />
+            <span className="text-[11px] text-gray-400">{he.studentCard.degreeGpaHint}</span>
+          </label>
+
+          <section className="rounded-lg border border-gray-100 p-3">
+            <button
+              type="button"
+              onClick={() => setShowMissing((v) => !v)}
+              className="flex w-full items-center justify-between text-xs font-semibold text-gray-700"
+            >
+              <span>{he.studentCard.missingForCompletion}</span>
+              <span className={complete ? "text-green-700" : "text-amber-700"}>
+                {complete ? "✓" : missingCategories.length + (missingMilestones.length > 0 ? 1 : 0)}
+              </span>
+            </button>
+            {showMissing &&
+              (nothingMissing ? (
+                <p className="mt-2 text-xs text-green-700">{he.studentCard.nothingMissing}</p>
+              ) : (
+                <ul className="mt-2 flex flex-col gap-1 text-xs text-amber-800">
+                  {missingCategories.map((c) => {
+                    const passedCount = c.entries.filter((e) => e.passed).length;
+                    return (
+                      <li key={c.key}>
+                        {he.studentCard.missingCourseCategory
+                          .replace("{label}", c.label)
+                          .replace("{remaining}", String(c.requiredCount - passedCount))}
+                      </li>
+                    );
+                  })}
+                  {missingMilestones.length > 0 && (
+                    <li>
+                      {he.studentCard.missingMilestonesLabel}:{" "}
+                      {missingMilestones
+                        .map((m) => m.nameHe || m.nameEn)
+                        .filter(Boolean)
+                        .join(", ")}
+                    </li>
+                  )}
+                </ul>
+              ))}
+          </section>
+
+          {requiredCompletionCourses.length > 0 && (
+            <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <h4 className="mb-2 text-xs font-semibold text-amber-800">{he.studentCard.requiredCompletionCourses}</h4>
+              <div className="flex flex-wrap gap-2">
+                {requiredCompletionCourses.map((c, i) => (
+                  <span key={i} className="rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-gray-800">
+                    {c.name}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <h4 className="mb-2 text-xs font-semibold text-gray-700">{he.studentCard.projectSection}</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={projectTitle}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                onBlur={() => save({ projectTitle })}
+                placeholder={he.studentCard.projectTitle}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+              />
+              <input
+                value={supervisorName}
+                onChange={(e) => setSupervisorName(e.target.value)}
+                onBlur={() => save({ supervisorName })}
+                placeholder={he.studentCard.supervisorName}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+              />
+            </div>
+
+            <div className="mt-3">
+              <h5 className="mb-1 text-xs font-semibold text-gray-500">{he.studentCard.milestones}</h5>
+              <div className="flex flex-col gap-1">
+                {milestones.map((m) => (
+                  <div key={m.key} className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={m.done} onChange={() => toggleMilestone(m.key)} />
+                    <input
+                      value={m.nameHe}
+                      onChange={(e) => renameMilestone(m.key, e.target.value)}
+                      onBlur={commitMilestones}
+                      placeholder={he.studentCard.milestoneNamePlaceholder}
+                      className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+                    />
+                    <button onClick={() => removeMilestone(m.key)} className="text-xs text-red-600 hover:underline">
+                      {he.studentCard.removeMilestone}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addMilestone} className="mt-1.5 text-xs font-medium text-blue-700 hover:underline">
+                + {he.studentCard.addMilestone}
+              </button>
+            </div>
+
+            <label className="mt-3 flex w-32 flex-col gap-1 text-xs text-gray-600">
+              {he.studentCard.finalGrade}
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={finalGrade}
+                onChange={(e) => setFinalGrade(e.target.value)}
+                onBlur={() => save({ finalGrade: finalGrade === "" ? undefined : Number(finalGrade) })}
+                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+              />
+            </label>
+          </section>
+
+          {courseCategories.map((category) => (
+            <CourseCategorySection key={category.key} category={category} onChange={(entries) => updateCategory(category.key, entries)} />
+          ))}
+
+          <AcademicHistorySection history={student.academicHistory} />
+
+          {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+
+          <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
+            <button onClick={() => setShowDetail(true)} className="text-xs font-medium text-blue-700 hover:underline">
+              {he.studentCard.moreDetails}
+            </button>
+            {complete &&
+              (showClearanceComingSoon ? (
+                <span className="text-xs font-medium text-gray-500">{he.common.comingSoon}</span>
+              ) : (
+                <button
+                  onClick={() => setShowClearanceComingSoon(true)}
+                  className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+                >
+                  {he.studentCard.clearanceForm}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
 
       {showDetail && <StudentDetailModal student={student} onClose={() => setShowDetail(false)} />}
     </div>
@@ -324,7 +420,9 @@ function CourseCategorySection({
 
 /** Read-only view of a student's raw, imported per-semester grades - kept
  *  separate from the editable CourseCategorySection above by design (see
- *  the module comment on Student.academicHistory in shared/src/types/student.ts). */
+ *  the module comment on Student.academicHistory in shared/src/types/student.ts).
+ *  Each course also shows its lecturer when known (see the History tab,
+ *  web/src/app/(app)/history, for where that's filled in). */
 function AcademicHistorySection({ history }: { history?: SemesterRecord[] }) {
   if (!history || history.length === 0) return null;
 
@@ -347,6 +445,7 @@ function AcademicHistorySection({ history }: { history?: SemesterRecord[] }) {
               {record.courses.map((c, i) => (
                 <span key={i} className="rounded-md bg-gray-50 px-2 py-0.5">
                   {c.name}: {c.grade ?? "—"}
+                  {c.lecturer && <span className="text-gray-400"> · {he.studentCard.lecturer}: {c.lecturer}</span>}
                 </span>
               ))}
             </div>
