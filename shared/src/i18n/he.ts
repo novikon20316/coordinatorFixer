@@ -249,6 +249,11 @@ export const he = {
     clickToChange: "לחצו על שורת תלמיד/ה כדי לשנות את הסטטוס שלו/ה",
     modalTitle: "שינוי סטטוס",
     newStatus: "סטטוס חדש",
+    dueForReviewBadge: "לבדיקה",
+    dueForReviewFilter: "רק תלמידים שעברו את משך הלימודים הרגיל ({count})",
+    bulkUpdateButton: "עדכון סטטוס לכל הרשימה ({count})",
+    bulkModalTitle: "עדכון סטטוס עבור {count} תלמידים",
+    bulkModalWarning: "הפעולה תעדכן את הסטטוס של כל התלמידים המוצגים ברשימה הנוכחית.",
   },
 
   history: {

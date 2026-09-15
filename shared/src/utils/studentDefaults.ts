@@ -5,7 +5,7 @@ import {
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
   DATA_SCIENCE_PROJECT_MILESTONES,
 } from "../constants/dataScienceCurriculum";
-import { activeYearOfStudy, HebrewYear, yearOfStudy } from "../constants/hebrewYear";
+import { activeYearOfStudy, CURRENT_HEBREW_YEAR, HebrewYear, yearOfStudy } from "../constants/hebrewYear";
 import { he } from "../i18n/he";
 import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord } from "../types/student";
 
@@ -165,6 +165,23 @@ export function studentCohortYearLabel(cohortYear: HebrewYear, status: StudentSt
       ? he.studentCard.yearOfStudy.COMPLETION
       : he.studentCard.yearOfStudy[String(activeYearOfStudy(cohortYear)) as "1" | "2"];
   return `${cohortYear} (${label})`;
+}
+
+/** True once a מן המניין (REGULAR-track) student's cohort has run past the
+ *  normal two-year program without them being marked graduated yet - a
+ *  signal for the coordinator to review, never an automatic status change:
+ *  a student can legitimately take longer than two years (see
+ *  activeYearOfStudy, which keeps such a student showing as year ב
+ *  indefinitely), so only a coordinator decides, per student or for the
+ *  whole list at once, whether to actually close them out. בהשלמה-track
+ *  students are excluded since that track has no fixed length. */
+export function isDueForGraduationReview(
+  cohortYear: HebrewYear,
+  status: StudentStatus,
+  track: StudentTrack,
+  asOfYear: HebrewYear = CURRENT_HEBREW_YEAR
+): boolean {
+  return track === StudentTrack.REGULAR && !isGraduatedStatus(status) && yearOfStudy(cohortYear, asOfYear) === "GRADUATED";
 }
 
 /** Merges one freshly-imported semester's grades into a student's existing

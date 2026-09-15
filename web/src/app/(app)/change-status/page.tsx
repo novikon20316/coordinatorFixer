@@ -7,6 +7,7 @@ import {
   FACULTY_VALUES,
   HEBREW_YEAR_VALUES,
   he,
+  isDueForGraduationReview,
   Student,
   STUDENT_TRACK_VALUES,
   StudentStatus,
@@ -16,6 +17,11 @@ import {
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
 import { StatusChangeModal } from "../../../components/StatusChangeModal";
+import { BulkStatusChangeModal } from "../../../components/BulkStatusChangeModal";
+
+function isDue(s: Student): boolean {
+  return !!s.cohortYear && isDueForGraduationReview(s.cohortYear, s.status, s.track);
+}
 
 /**
  * Filters + a list of students, with a click-to-change status action (any
@@ -31,21 +37,26 @@ export default function ChangeStatusPage() {
   const [trackFilter, setTrackFilter] = useState<StudentTrack | "">("");
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [dueOnly, setDueOnly] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeStudents(faculty, setStudents);
     return unsubscribe;
   }, [faculty]);
 
+  const dueCount = useMemo(() => students.filter(isDue).length, [students]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return students
       .filter((s) => !trackFilter || s.track === trackFilter)
       .filter((s) => !cohortFilter || s.cohortYear === cohortFilter)
+      .filter((s) => !dueOnly || isDue(s))
       .filter((s) => !q || s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
       .sort((a, b) => a.fullName.localeCompare(b.fullName, "he"));
-  }, [students, trackFilter, cohortFilter, search]);
+  }, [students, trackFilter, cohortFilter, dueOnly, search]);
 
   function handleStatusChange(studentId: string, status: StudentStatus) {
     setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, status } : s)));
@@ -99,9 +110,23 @@ export default function ChangeStatusPage() {
           placeholder={he.dashboard.searchPlaceholder}
           className="w-64 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         />
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" checked={dueOnly} onChange={(e) => setDueOnly(e.target.checked)} />
+          {he.changeStatus.dueForReviewFilter.replace("{count}", String(dueCount))}
+        </label>
       </div>
 
-      <p className="text-xs text-gray-500">{he.changeStatus.clickToChange}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-gray-500">{he.changeStatus.clickToChange}</p>
+        {filtered.length > 0 && (
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {he.changeStatus.bulkUpdateButton.replace("{count}", String(filtered.length))}
+          </button>
+        )}
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full text-sm">
@@ -125,7 +150,14 @@ export default function ChangeStatusPage() {
                   {s.cohortYear ? studentCohortYearLabel(s.cohortYear, s.status, s.track) : "—"}
                 </td>
                 <td className="px-4 py-2 text-gray-600">{he.dashboard.tabs[s.track]}</td>
-                <td className="px-4 py-2 text-gray-600">{he.status[s.status]}</td>
+                <td className="px-4 py-2 text-gray-600">
+                  {he.status[s.status]}
+                  {isDue(s) && (
+                    <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                      {he.changeStatus.dueForReviewBadge}
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -136,6 +168,10 @@ export default function ChangeStatusPage() {
 
       {selected && (
         <StatusChangeModal student={selected} onClose={() => setSelected(null)} onStatusChange={handleStatusChange} />
+      )}
+
+      {bulkOpen && (
+        <BulkStatusChangeModal students={filtered} onClose={() => setBulkOpen(false)} onStatusChange={handleStatusChange} />
       )}
     </div>
   );
