@@ -8,6 +8,8 @@ import {
   StudentImportRowResult,
   StudentImportSummary,
   mapStudentImportRow,
+  HEBREW_YEAR_VALUES,
+  HebrewYear,
 } from "@admin-coordinator/shared";
 import * as studentsService from "../services/students.service";
 
@@ -81,8 +83,12 @@ export async function removeStudent(req: Request, res: Response, next: NextFunct
 export async function importStudents(req: Request, res: Response, next: NextFunction) {
   try {
     const rows = req.body?.rows;
+    const asOfYear = req.body?.asOfYear as HebrewYear | undefined;
     if (!Array.isArray(rows)) {
       return res.status(400).json({ error: "Expected body.rows to be an array" });
+    }
+    if (!asOfYear || !HEBREW_YEAR_VALUES.includes(asOfYear)) {
+      return res.status(400).json({ error: "Expected body.asOfYear to be a known Hebrew year" });
     }
     if (rows.length > MAX_IMPORT_ROWS) {
       return res.status(400).json({ error: `File has more than ${MAX_IMPORT_ROWS} rows - split it and import separately` });
@@ -95,7 +101,7 @@ export async function importStudents(req: Request, res: Response, next: NextFunc
       const raw = rows[i] as StudentImportRow;
       const fullName = String(raw?.FullNameHe ?? raw?.FullNameEn ?? "");
 
-      const mapped = mapStudentImportRow(raw);
+      const mapped = mapStudentImportRow(raw, asOfYear);
       if (!mapped.ok) {
         details.push({ row: rowNumber, fullName, status: "skipped", reason: mapped.reason });
         continue;

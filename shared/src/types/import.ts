@@ -1,4 +1,5 @@
 import { DegreeType, Faculty, StudentStatus, StudentTrack } from "../constants/status";
+import { addHebrewYears, HebrewYear } from "../constants/hebrewYear";
 import { StudentCreateInput } from "./student";
 
 /**
@@ -70,8 +71,13 @@ export type MappedImportRow =
  * lifecycle this once used StudentStatus.REGISTERED for now belongs to
  * Candidate (see types/candidate.ts) instead, and the source system has no
  * equivalent of this system's track distinction.
+ *
+ * `asOfYear` is the Hebrew year the export itself is dated (picked by the
+ * coordinator at upload time), used with the row's YearOfStudy (1/2) to
+ * derive cohortYear - same approach as parseRoster.ts's "שנה פדגוגית"
+ * handling: a row in year 2 started the program one Hebrew year earlier.
  */
-export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
+export function mapStudentImportRow(row: StudentImportRow, asOfYear: HebrewYear): MappedImportRow {
   const role = (row.Role ?? "").trim().toLowerCase();
   if (role !== "student") {
     return { ok: false, reason: `Not a student row (Role: "${row.Role || "—"}")` };
@@ -88,6 +94,9 @@ export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
     return { ok: false, reason: `Unrecognized FacultyId "${row.FacultyId || "—"}"` };
   }
 
+  const yearOfStudy = Number(row.YearOfStudy) === 2 ? 2 : 1;
+  const cohortYear = yearOfStudy === 2 ? addHebrewYears(asOfYear, -1) : asOfYear;
+
   return {
     ok: true,
     input: {
@@ -99,6 +108,7 @@ export function mapStudentImportRow(row: StudentImportRow): MappedImportRow {
       faculty,
       track: StudentTrack.REGULAR,
       status: StudentStatus.ACTIVE,
+      cohortYear,
       // Not available from organization-all-system today - left for a
       // coordinator to complete by hand (see the module comment above).
       previousCollege: "",

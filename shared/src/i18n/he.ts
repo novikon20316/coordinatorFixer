@@ -94,7 +94,7 @@ export const he = {
     yearFilterAll: "כל השנים",
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
-    graduatesTab: "בוגרים",
+    graduatesTab: "מוסמכים/ות",
   },
 
   studentForm: {
@@ -169,6 +169,7 @@ export const he = {
     title: "ייבוא תלמידים ממערכת אחרת",
     description:
       "אין כרגע חיבור אוטומטי בין המערכות. יש לייצא את רשימת המשתמשים מהמערכת השנייה לקובץ Excel (תפריט הרכזים/מנהל שם) ולהעלות אותו כאן. שורות שאינן מסומנות כתלמיד יידלגו, ושדות שלא קיימים במערכת המקור (מכללה קודמת, תחום, ממוצע, רקע) יישארו ריקים להשלמה ידנית.",
+    asOfYearLabel: "שנה נוכחית של הקובץ (למחזור)",
     uploadButton: "בחר קובץ Excel",
     uploading: "מייבא...",
     resultSummary: "יובאו {created} מתוך {total} שורות ({skipped} דולגו, {failed} נכשלו)",
