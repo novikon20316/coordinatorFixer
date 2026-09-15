@@ -4,6 +4,8 @@ import {
   Student,
   StudentCreateInput,
   StudentFilters,
+  StudentStatus,
+  StudentTrack,
   StudentUpdateInput,
 } from "@admin-coordinator/shared";
 import { db } from "../config/firebase";
@@ -50,6 +52,18 @@ export async function getStudent(id: string): Promise<Student | null> {
   return { id: doc.id, ...doc.data() } as Student;
 }
 
+// A בהשלמה-track student isn't "מן המניין" by definition, so ACTIVE (which
+// implies a regular-track student in good standing) doesn't apply to them -
+// they default to NOT_REGULAR instead. Only ACTIVE is overridden; a
+// coordinator's own choice of any other status (including the two graduated
+// ones) always wins.
+function normalizeStatusForTrack<T extends { track?: StudentTrack; status?: StudentStatus }>(input: T): T {
+  if (input.track === StudentTrack.COMPLETION && input.status === StudentStatus.ACTIVE) {
+    return { ...input, status: StudentStatus.NOT_REGULAR };
+  }
+  return input;
+}
+
 export async function createStudent(input: StudentCreateInput): Promise<Student> {
   const firestore = ensureDb();
   const now = new Date().toISOString();
@@ -59,7 +73,7 @@ export async function createStudent(input: StudentCreateInput): Promise<Student>
     // student starts with the right checklist instead of an empty one.
     courseCategories: buildDefaultCourseCategories(input.faculty),
     milestones: buildDefaultMilestones(input.faculty),
-    ...input,
+    ...normalizeStatusForTrack(input),
     createdAt: now,
     updatedAt: now,
   });
@@ -70,7 +84,19 @@ export async function createStudent(input: StudentCreateInput): Promise<Student>
 export async function updateStudent(id: string, input: StudentUpdateInput): Promise<void> {
   const firestore = ensureDb();
   const ref = firestore.collection(COLLECTION).doc(id);
-  await ref.update({ ...input, updatedAt: new Date().toISOString() });
+  let patch = normalizeStatusForTrack(input);
+  // Track and status can be edited independently (e.g. the student detail
+  // modal only ever patches track) - if this update moves a student into
+  // בהשלמה without touching status, re-check against their current status
+  // too, so they don't keep showing ACTIVE just because this particular
+  // patch didn't mention it.
+  if (patch.track === StudentTrack.COMPLETION && patch.status === undefined) {
+    const current = await ref.get();
+    if ((current.data() as Student | undefined)?.status === StudentStatus.ACTIVE) {
+      patch = { ...patch, status: StudentStatus.NOT_REGULAR };
+    }
+  }
+  await ref.update({ ...patch, updatedAt: new Date().toISOString() });
 }
 
 export async function deleteStudent(id: string): Promise<void> {
