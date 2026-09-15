@@ -153,7 +153,7 @@ export function StudentCard({
             </p>
             {student.cohortYear && (
               <p className="mt-1 text-xs text-gray-500">
-                {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status)}
+                {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status, student.track)}
               </p>
             )}
           </div>

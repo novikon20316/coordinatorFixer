@@ -1,4 +1,4 @@
-import { Faculty, isGraduatedStatus, StudentStatus } from "../constants/status";
+import { Faculty, isGraduatedStatus, StudentStatus, StudentTrack } from "../constants/status";
 import {
   DATA_SCIENCE_CORE_CURRICULUM_ALIASES,
   DATA_SCIENCE_CORE_CURRICULUM_COURSES,
@@ -150,15 +150,20 @@ export function cohortYearOptionLabel(year: HebrewYear): string {
 }
 
 /** Label for a specific student's own cohort year - like
- *  cohortYearOptionLabel, but the "(מוסמך/כת)" suffix is driven by the
- *  student's actual status (isGraduatedStatus) rather than elapsed time, so
- *  it never appears just because two Hebrew years have passed; a student who
- *  outlasts the normal two-year program without being marked graduated keeps
- *  showing as year ב (see activeYearOfStudy). */
-export function studentCohortYearLabel(cohortYear: HebrewYear, status: StudentStatus): string {
+ *  cohortYearOptionLabel, but the suffix is driven by the student's actual
+ *  status and track rather than elapsed time. "(מוסמך/כת)" only appears once
+ *  isGraduatedStatus is true (never automatically just because two Hebrew
+ *  years have passed - a student who outlasts the normal two-year program
+ *  without being marked graduated keeps showing as year ב, see
+ *  activeYearOfStudy); a בהשלמה-track student who isn't graduated shows
+ *  "(משלים/מה)" instead of a year-of-study number, since that track doesn't
+ *  follow the two-year מן המניין progression. */
+export function studentCohortYearLabel(cohortYear: HebrewYear, status: StudentStatus, track: StudentTrack): string {
   const label = isGraduatedStatus(status)
     ? he.studentCard.yearOfStudy.GRADUATED
-    : he.studentCard.yearOfStudy[String(activeYearOfStudy(cohortYear)) as "1" | "2"];
+    : track === StudentTrack.COMPLETION
+      ? he.studentCard.yearOfStudy.COMPLETION
+      : he.studentCard.yearOfStudy[String(activeYearOfStudy(cohortYear)) as "1" | "2"];
   return `${cohortYear} (${label})`;
 }
 
