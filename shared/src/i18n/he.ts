@@ -126,6 +126,7 @@ export const he = {
     courseworkSection: "מקצועות לתואר",
     addCourse: "הוסף קורס",
     courseName: "שם הקורס",
+    oldCurriculumNameHint: "ניתן לערוך את שם הקורס - שימושי לתלמידים שלמדו לפי תבנית קורסים ישנה",
     credits: "נ\"ז",
     grade: "ציון",
     passed: "עבר/ה",

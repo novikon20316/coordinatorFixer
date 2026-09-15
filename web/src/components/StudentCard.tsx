@@ -367,16 +367,13 @@ function CourseCategorySection({
               checked={entry.passed}
               onChange={(e) => updateEntry(i, { passed: e.target.checked })}
             />
-            {category.fixedCatalog ? (
-              <span className="flex-1 text-sm text-gray-800">{entry.name}</span>
-            ) : (
-              <input
-                value={entry.name}
-                onChange={(e) => updateEntry(i, { name: e.target.value })}
-                placeholder={he.studentCard.courseName}
-                className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm"
-              />
-            )}
+            <input
+              value={entry.name}
+              onChange={(e) => updateEntry(i, { name: e.target.value })}
+              placeholder={he.studentCard.courseName}
+              title={category.fixedCatalog ? he.studentCard.oldCurriculumNameHint : undefined}
+              className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm"
+            />
             <input
               type="number"
               value={entry.grade ?? ""}

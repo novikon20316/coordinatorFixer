@@ -4,7 +4,13 @@ import { HebrewYear } from "../constants/hebrewYear";
 /** One entry in a course-completion category - either a checked-off catalog
  *  course (see CourseCompletionCategory.entries for the fixed-catalog case)
  *  or a freely-typed course (core/elective categories, whose real course
- *  lists vary by year and aren't a fixed catalog). */
+ *  lists vary by year and aren't a fixed catalog). `name` is editable even
+ *  for a fixed-catalog entry - the catalog itself only fixes how many
+ *  entries a category has, not what a given student's course was actually
+ *  called; a coordinator can rename an entry to match a student who studied
+ *  under an older course-name template (see DATA_SCIENCE_CORE_CURRICULUM_ALIASES
+ *  in dataScienceCurriculum.ts for the cases already known well enough to
+ *  match automatically - a manual rename here is for the rest). */
 export interface CourseCompletionEntry {
   name: string;
   credits?: number;
