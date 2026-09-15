@@ -10,6 +10,18 @@ export function StudentsCardGrid({ students, candidates = [] }: { students: Stud
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
   // ordered by name rather than Firestore's arbitrary insertion order.
   const [sortAscending, setSortAscending] = useState(true);
+  // Cards start collapsed to just a name/status row - the coordinator only
+  // wants a student's full details once she deliberately opens that card.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -45,9 +57,15 @@ export function StudentsCardGrid({ students, candidates = [] }: { students: Stud
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-gray-200 py-16 text-center text-gray-500">{he.common.noData}</div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((s) => (
-            <StudentCard key={s.id} student={s} requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)} />
+            <StudentCard
+              key={s.id}
+              student={s}
+              requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
+              expanded={expandedIds.has(s.id)}
+              onToggleExpanded={() => toggleExpanded(s.id)}
+            />
           ))}
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  cohortYearOptionLabel,
   DEGREE_TYPE_VALUES,
   DegreeType,
   he,
@@ -133,7 +134,7 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
                 <option value="">—</option>
                 {HEBREW_YEAR_VALUES.map((y) => (
                   <option key={y} value={y}>
-                    {y}
+                    {cohortYearOptionLabel(y)}
                   </option>
                 ))}
               </select>

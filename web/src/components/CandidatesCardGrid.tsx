@@ -6,6 +6,18 @@ import { CandidateCard } from "./CandidateCard";
 
 export function CandidatesCardGrid({ candidates, onPromoted }: { candidates: Candidate[]; onPromoted: () => void }) {
   const [search, setSearch] = useState("");
+  // Cards start collapsed to just a name/status row, same as the students
+  // list - see StudentsCardGrid's matching comment.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -30,9 +42,15 @@ export function CandidatesCardGrid({ candidates, onPromoted }: { candidates: Can
           {he.candidates.noCandidates}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((c) => (
-            <CandidateCard key={c.id} candidate={c} onPromoted={onPromoted} />
+            <CandidateCard
+              key={c.id}
+              candidate={c}
+              onPromoted={onPromoted}
+              expanded={expandedIds.has(c.id)}
+              onToggleExpanded={() => toggleExpanded(c.id)}
+            />
           ))}
         </div>
       )}

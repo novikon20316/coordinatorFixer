@@ -48,6 +48,10 @@ export interface MilestoneProgress {
 export interface SemesterCourseGrade {
   name: string;
   grade?: number | string;
+  /** שם המרצה שלימד את הקורס באותו סמסטר - not sourced from any imported
+   *  grade sheet (those don't carry it), filled in by hand by the
+   *  coordinator from the History tab (see web/src/app/(app)/history). */
+  lecturer?: string;
 }
 
 /** One semester's worth of raw, faithfully-imported grades for a student -

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  cohortYearOptionLabel,
   CURRENT_HEBREW_YEAR,
   DegreeType,
   Faculty,
@@ -88,7 +89,7 @@ export function AddStudentBar({ faculty, onCreated }: { faculty: Faculty; onCrea
         <select value={cohortYear} onChange={(e) => setCohortYear(e.target.value as HebrewYear)} className={inputClass}>
           {HEBREW_YEAR_VALUES.map((y) => (
             <option key={y} value={y}>
-              {y}
+              {cohortYearOptionLabel(y)}
             </option>
           ))}
         </select>

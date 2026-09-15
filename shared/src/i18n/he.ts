@@ -47,6 +47,7 @@ export const he = {
     candidates: "מועמדים",
     reports: "דוחות",
     changeStatus: "שינוי סטטוס",
+    history: "היסטוריה",
     coordinators: "ניהול רכזים",
     facultyFilter: "פקולטה מוצגת",
   },
@@ -139,6 +140,17 @@ export const he = {
     requiredCompletionCourses: "קורסי השלמה נדרשים",
     moreDetails: "פרטים נוספים",
     clearanceForm: "פתיחת טופס סילוקין",
+    startYear: "שנת התחלה",
+    expand: "הצג פרטים",
+    collapse: "הסתר פרטים",
+    degreeGpa: "ממוצע ציונים בתואר",
+    degreeGpaHint: "מתעדכן בזמן אמת עד לזכאות לתואר",
+    missingForCompletion: "מה חסר להשלמה",
+    hideMissingForCompletion: "הסתר מה חסר להשלמה",
+    nothingMissing: "כל הדרישות הושלמו",
+    missingCourseCategory: "{label}: נותרו {remaining}",
+    missingMilestonesLabel: "אבני דרך שטרם הושלמו",
+    lecturer: "מרצה",
   },
 
   studentDetail: {
@@ -233,6 +245,22 @@ export const he = {
     clickToChange: "לחצו על שורת תלמיד/ה כדי לשנות את הסטטוס שלו/ה",
     modalTitle: "שינוי סטטוס",
     newStatus: "סטטוס חדש",
+  },
+
+  history: {
+    title: "היסטוריית קורסים",
+    description: "רשימת כל הקורסים שנלמדו, לפי מחזור וסמסטר - כולל שם המרצה. לחצו על קורס לפרטים נוספים.",
+    courseName: "שם הקורס",
+    cohortYear: "מחזור",
+    semester: "סמסטר",
+    lecturer: "מרצה",
+    lecturerPlaceholder: "הזן שם מרצה",
+    studentsCount: "מס' תלמידים",
+    noHistory: "לא נמצאה היסטוריית קורסים",
+    courseDetailTitle: "פרטי קורס",
+    studentName: "שם התלמיד/ה",
+    grade: "ציון",
+    close: "סגור",
   },
 
   table: {
