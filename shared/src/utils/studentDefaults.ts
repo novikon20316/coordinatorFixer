@@ -140,7 +140,7 @@ export function syncCourseCategoriesFromHistory(
 }
 
 /** Label for a מחזור (cohort year) option that also names the academic year
- *  (שנה א׳/שנה ב׳/בוגר/ת) that cohort is currently in - lets every מחזור
+ *  (שנה א׳/שנה ב׳/מוסמך/כת) that cohort is currently in - lets every מחזור
  *  picker in the app (add-student, student details, cohort filters) show
  *  the student's current academic year at a glance instead of a bare Hebrew
  *  year the coordinator has to convert in her head. */

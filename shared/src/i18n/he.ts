@@ -113,7 +113,7 @@ export const he = {
     yearOfStudy: {
       1: "שנה א׳",
       2: "שנה ב׳",
-      GRADUATED: "בוגר/ת",
+      GRADUATED: "מוסמך/כת",
     } as Record<"1" | "2" | "GRADUATED", string>,
     projectSection: "פרויקט / תזה",
     projectTitle: "שם הפרויקט",
