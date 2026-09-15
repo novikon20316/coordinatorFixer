@@ -9,6 +9,7 @@ import {
   isGraduatedStatus,
   Student,
   StudentTrack,
+  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [cohortFilter, setCohortFilter] = useState<string>("");
+  const [yearFilter, setYearFilter] = useState<1 | 2 | "GRADUATED" | "">("");
   const [showImport, setShowImport] = useState(false);
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
@@ -63,8 +65,11 @@ export default function DashboardPage() {
       view === GRADUATED_VIEW
         ? students.filter((s) => isGraduatedStatus(s.status))
         : students.filter((s) => s.track === view && !isGraduatedStatus(s.status));
-    return cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
-  }, [students, view, cohortFilter]);
+    const byCohort = cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
+    return view === StudentTrack.REGULAR && yearFilter
+      ? byCohort.filter((s) => s.cohortYear && yearOfStudy(s.cohortYear) === yearFilter)
+      : byCohort;
+  }, [students, view, cohortFilter, yearFilter]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,6 +115,21 @@ export default function DashboardPage() {
             </option>
           ))}
         </select>
+        {view === StudentTrack.REGULAR && (
+          <select
+            value={yearFilter}
+            onChange={(e) => {
+              const v = e.target.value;
+              setYearFilter(v === "" ? "" : v === "GRADUATED" ? "GRADUATED" : (Number(v) as 1 | 2));
+            }}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">{he.dashboard.yearFilterAll}</option>
+            <option value="1">{he.studentCard.yearOfStudy["1"]}</option>
+            <option value="2">{he.studentCard.yearOfStudy["2"]}</option>
+            <option value="GRADUATED">{he.studentCard.yearOfStudy.GRADUATED}</option>
+          </select>
+        )}
       </div>
       <StudentsCardGrid students={visibleStudents} candidates={candidates} />
 

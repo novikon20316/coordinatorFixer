@@ -91,6 +91,7 @@ export const he = {
     studentsListTitle: "רשימת סטודנטים",
     searchPlaceholder: "חיפוש לפי שם או ת.ז...",
     cohortFilterAll: "כל המחזורים",
+    yearFilterAll: "כל השנים",
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
     graduatesTab: "בוגרים",
