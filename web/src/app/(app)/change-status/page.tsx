@@ -8,6 +8,7 @@ import {
   he,
   Student,
   STUDENT_TRACK_VALUES,
+  StudentStatus,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
@@ -43,6 +44,10 @@ export default function ChangeStatusPage() {
       .filter((s) => !q || s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
       .sort((a, b) => a.fullName.localeCompare(b.fullName, "he"));
   }, [students, trackFilter, cohortFilter, search]);
+
+  function handleStatusChange(studentId: string, status: StudentStatus) {
+    setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, status } : s)));
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,7 +130,9 @@ export default function ChangeStatusPage() {
         {filtered.length === 0 && <div className="py-16 text-center text-gray-500">{he.common.noData}</div>}
       </div>
 
-      {selected && <StatusChangeModal student={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <StatusChangeModal student={selected} onClose={() => setSelected(null)} onStatusChange={handleStatusChange} />
+      )}
     </div>
   );
 }

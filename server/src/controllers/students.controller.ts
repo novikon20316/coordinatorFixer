@@ -56,8 +56,8 @@ export async function postStudent(req: Request, res: Response, next: NextFunctio
 
 export async function patchStudent(req: Request, res: Response, next: NextFunction) {
   try {
-    const student = await studentsService.updateStudent(req.params.id, req.body);
-    res.json(student);
+    await studentsService.updateStudent(req.params.id, req.body);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

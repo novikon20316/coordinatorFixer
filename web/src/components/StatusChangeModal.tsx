@@ -13,25 +13,24 @@ import { apiFetch } from "../lib/apiClient";
 export function StatusChangeModal({
   student,
   onClose,
+  onStatusChange,
 }: {
   student: Student;
   onClose: () => void;
+  /** Applied immediately so the row updates without waiting on the PATCH
+   *  round trip; called again with the previous status if the PATCH fails. */
+  onStatusChange: (studentId: string, status: StudentStatus) => void;
 }) {
   const [status, setStatus] = useState<StudentStatus>(student.status);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    try {
-      await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : he.common.error);
-    } finally {
-      setSaving(false);
-    }
+  function handleSave() {
+    const previousStatus = student.status;
+    onStatusChange(student.id, status);
+    onClose();
+    apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify({ status }) }).catch((err) => {
+      onStatusChange(student.id, previousStatus);
+      window.alert(err instanceof Error ? err.message : he.common.error);
+    });
   }
 
   return (
@@ -55,18 +54,15 @@ export function StatusChangeModal({
           </select>
         </label>
 
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-
         <div className="mt-5 flex justify-end gap-3">
           <button onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">
             {he.common.cancel}
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
           >
-            {saving ? he.common.loading : he.common.save}
+            {he.common.save}
           </button>
         </div>
       </div>

@@ -67,12 +67,10 @@ export async function createStudent(input: StudentCreateInput): Promise<Student>
   return { id: created.id, ...created.data() } as Student;
 }
 
-export async function updateStudent(id: string, input: StudentUpdateInput): Promise<Student> {
+export async function updateStudent(id: string, input: StudentUpdateInput): Promise<void> {
   const firestore = ensureDb();
   const ref = firestore.collection(COLLECTION).doc(id);
   await ref.update({ ...input, updatedAt: new Date().toISOString() });
-  const updated = await ref.get();
-  return { id: updated.id, ...updated.data() } as Student;
 }
 
 export async function deleteStudent(id: string): Promise<void> {
