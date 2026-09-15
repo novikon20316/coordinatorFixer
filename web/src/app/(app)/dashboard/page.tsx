@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  activeYearOfStudy,
   Candidate,
   cohortYearOptionLabel,
   HEBREW_YEAR_VALUES,
@@ -9,7 +10,6 @@ import {
   isGraduatedStatus,
   Student,
   StudentTrack,
-  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -24,9 +24,16 @@ import { useFaculty } from "../../../context/FacultyContext";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
-// on (see isGraduatedStatus).
+// on. A student counts as graduated only by status (isGraduatedStatus,
+// i.e. one of the two "מוסמך/כת" statuses set by hand) - never
+// automatically just because their cohort has aged past the normal 2-year
+// program (see activeYearOfStudy, used for the year filter below).
 const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
+
+function isGraduate(student: Student): boolean {
+  return isGraduatedStatus(student.status);
+}
 
 export default function DashboardPage() {
   const { faculty } = useFaculty();
@@ -34,7 +41,7 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [cohortFilter, setCohortFilter] = useState<string>("");
-  const [yearFilter, setYearFilter] = useState<1 | 2 | "GRADUATED" | "">("");
+  const [yearFilter, setYearFilter] = useState<1 | 2 | "">("");
   const [showImport, setShowImport] = useState(false);
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
@@ -63,11 +70,11 @@ export default function DashboardPage() {
   const visibleStudents = useMemo(() => {
     const byView =
       view === GRADUATED_VIEW
-        ? students.filter((s) => isGraduatedStatus(s.status))
-        : students.filter((s) => s.track === view && !isGraduatedStatus(s.status));
+        ? students.filter(isGraduate)
+        : students.filter((s) => s.track === view && !isGraduate(s));
     const byCohort = cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
     return view === StudentTrack.REGULAR && yearFilter
-      ? byCohort.filter((s) => s.cohortYear && yearOfStudy(s.cohortYear) === yearFilter)
+      ? byCohort.filter((s) => s.cohortYear && activeYearOfStudy(s.cohortYear) === yearFilter)
       : byCohort;
   }, [students, view, cohortFilter, yearFilter]);
 
@@ -120,14 +127,13 @@ export default function DashboardPage() {
             value={yearFilter}
             onChange={(e) => {
               const v = e.target.value;
-              setYearFilter(v === "" ? "" : v === "GRADUATED" ? "GRADUATED" : (Number(v) as 1 | 2));
+              setYearFilter(v === "" ? "" : (Number(v) as 1 | 2));
             }}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">{he.dashboard.yearFilterAll}</option>
             <option value="1">{he.studentCard.yearOfStudy["1"]}</option>
             <option value="2">{he.studentCard.yearOfStudy["2"]}</option>
-            <option value="GRADUATED">{he.studentCard.yearOfStudy.GRADUATED}</option>
           </select>
         )}
       </div>

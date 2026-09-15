@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   buildDefaultCourseCategories,
   buildDefaultMilestones,
-  cohortYearOptionLabel,
   CourseCompletionCategory,
   CourseCompletionEntry,
   he,
@@ -15,6 +14,7 @@ import {
   Student,
   STUDENT_STATUS_VALUES,
   StudentStatus,
+  studentCohortYearLabel,
   syncCourseCategoriesFromHistory,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
@@ -153,7 +153,7 @@ export function StudentCard({
             </p>
             {student.cohortYear && (
               <p className="mt-1 text-xs text-gray-500">
-                {he.studentCard.startYear}: {cohortYearOptionLabel(student.cohortYear)}
+                {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status)}
               </p>
             )}
           </div>

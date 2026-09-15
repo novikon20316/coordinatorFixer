@@ -10,6 +10,7 @@ import {
   Student,
   STUDENT_TRACK_VALUES,
   StudentStatus,
+  studentCohortYearLabel,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
@@ -120,7 +121,9 @@ export default function ChangeStatusPage() {
                 <td className="px-4 py-2 text-gray-600" dir="ltr">
                   {s.idNumber || "—"}
                 </td>
-                <td className="px-4 py-2 text-gray-600">{s.cohortYear ? cohortYearOptionLabel(s.cohortYear) : "—"}</td>
+                <td className="px-4 py-2 text-gray-600">
+                  {s.cohortYear ? studentCohortYearLabel(s.cohortYear, s.status) : "—"}
+                </td>
                 <td className="px-4 py-2 text-gray-600">{he.dashboard.tabs[s.track]}</td>
                 <td className="px-4 py-2 text-gray-600">{he.status[s.status]}</td>
               </tr>

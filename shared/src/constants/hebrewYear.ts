@@ -43,3 +43,13 @@ export function yearOfStudy(
   if (elapsed === 1) return 2;
   return "GRADUATED";
 }
+
+/** Where a specific student's cohort stands, capped at year 2 - unlike
+ *  yearOfStudy, this never returns "GRADUATED" on its own just because two
+ *  Hebrew years have elapsed. A student only actually graduates once a
+ *  coordinator sets one of the two graduating statuses (see
+ *  isGraduatedStatus in constants/status.ts); until then they stay "year 2"
+ *  even if they've been in the program longer than the normal two years. */
+export function activeYearOfStudy(cohortYear: HebrewYear, asOfYear: HebrewYear = CURRENT_HEBREW_YEAR): 1 | 2 {
+  return yearOfStudy(cohortYear, asOfYear) === 1 ? 1 : 2;
+}
