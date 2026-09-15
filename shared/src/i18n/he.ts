@@ -286,8 +286,8 @@ export const he = {
     [StudentStatus.NOT_REGULAR]: "לא מן המניין",
     [StudentStatus.CONDITIONAL]: "על תנאי",
     [StudentStatus.ON_LEAVE]: "בחופשה",
-    [StudentStatus.GRADUATED_ELIGIBLE]: "בוגר סיים טופס טיולים וזכאי לתואר",
-    [StudentStatus.GRADUATED_PENDING]: "בוגר בטופס טיולים לקראת זכאות לתואר",
+    [StudentStatus.GRADUATED_ELIGIBLE]: "מוסמך סיים טופס טיולים וזכאי לתואר",
+    [StudentStatus.GRADUATED_PENDING]: "מוסמך/כת בטופס טיולים לקראת זכאות לתואר",
   } as Record<StudentStatus, string>,
 
   // Meanings not yet provided for the 8-value status list above - left

@@ -18,8 +18,8 @@ export enum StudentStatus {
   NOT_REGULAR = "NOT_REGULAR", // לא מן המניין
   CONDITIONAL = "CONDITIONAL", // על תנאי
   ON_LEAVE = "ON_LEAVE", // בחופשה
-  GRADUATED_ELIGIBLE = "GRADUATED_ELIGIBLE", // בוגר סיים טופס טיולים וזכאי לתואר
-  GRADUATED_PENDING = "GRADUATED_PENDING", // בוגר בטופס טיולים לקראת זכאות לתואר
+  GRADUATED_ELIGIBLE = "GRADUATED_ELIGIBLE", // מוסמך סיים טופס טיולים וזכאי לתואר
+  GRADUATED_PENDING = "GRADUATED_PENDING", // מוסמך/כת בטופס טיולים לקראת זכאות לתואר
 }
 
 export const STUDENT_STATUS_VALUES: StudentStatus[] = [
