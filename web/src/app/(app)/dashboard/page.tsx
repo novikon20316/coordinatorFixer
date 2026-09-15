@@ -58,20 +58,33 @@ export default function DashboardPage() {
     return unsubscribe;
   }, [faculty]);
 
+  const studentsByView = (v: DashboardView) =>
+    v === GRADUATED_VIEW
+      ? students.filter(isGraduate)
+      : students.filter((s) => s.track === v && !isGraduate(s));
+
+  const countForView = (v: DashboardView) => {
+    const byView = studentsByView(v);
+    return cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter).length : byView.length;
+  };
+
   const viewOptions = useMemo(
     () => [
-      { value: StudentTrack.REGULAR, label: he.dashboard.tabs[StudentTrack.REGULAR] },
-      { value: StudentTrack.COMPLETION, label: he.dashboard.tabs[StudentTrack.COMPLETION] },
-      { value: GRADUATED_VIEW, label: he.dashboard.graduatesTab },
+      {
+        value: StudentTrack.REGULAR,
+        label: `${he.dashboard.tabs[StudentTrack.REGULAR]} (${countForView(StudentTrack.REGULAR)})`,
+      },
+      {
+        value: StudentTrack.COMPLETION,
+        label: `${he.dashboard.tabs[StudentTrack.COMPLETION]} (${countForView(StudentTrack.COMPLETION)})`,
+      },
+      { value: GRADUATED_VIEW, label: `${he.dashboard.graduatesTab} (${countForView(GRADUATED_VIEW)})` },
     ],
-    []
+    [students, cohortFilter]
   );
 
   const visibleStudents = useMemo(() => {
-    const byView =
-      view === GRADUATED_VIEW
-        ? students.filter(isGraduate)
-        : students.filter((s) => s.track === view && !isGraduate(s));
+    const byView = studentsByView(view);
     const byCohort = cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
     return view === StudentTrack.REGULAR && yearFilter
       ? byCohort.filter((s) => s.cohortYear && activeYearOfStudy(s.cohortYear) === yearFilter)
