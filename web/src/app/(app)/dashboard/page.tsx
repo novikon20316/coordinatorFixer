@@ -9,6 +9,7 @@ import {
   he,
   isGraduatedStatus,
   Student,
+  StudentStatus,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
@@ -24,15 +25,38 @@ import { useFaculty } from "../../../context/FacultyContext";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
-// on. A student counts as graduated only by status (isGraduatedStatus,
-// i.e. one of the two "מוסמך/כת" statuses set by hand) - never
-// automatically just because their cohort has aged past the normal 2-year
-// program (see activeYearOfStudy, used for the year filter below).
+// on. A student counts as graduated by status (isGraduatedStatus, i.e. one
+// of the two "מוסמך/כת" statuses set by hand), OR - only once a specific
+// cycle is selected in the cohort filter - by having simply run past their
+// one-year program relative to that cycle while still in good standing
+// (status ACTIVE). A student whose duties aren't done (on leave, conditional,
+// not-regular, canceled, etc.) is left under their track tab instead of
+// being swept into graduates just because a later cycle is being viewed.
+// This is a display-only inference for the selected cycle - it never writes
+// back to the student's stored status.
 const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
 
-function isGraduate(student: Student): boolean {
-  return isGraduatedStatus(student.status);
+function isGraduate(student: Student, referenceCycle: string): boolean {
+  if (isGraduatedStatus(student.status)) return true;
+  if (!referenceCycle || student.track !== StudentTrack.REGULAR || student.status !== StudentStatus.ACTIVE) {
+    return false;
+  }
+  if (!student.cohortYear) return false;
+  return HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) >
+    HEBREW_YEAR_VALUES.indexOf(student.cohortYear);
+}
+
+// Track tabs narrow to students who started exactly in the selected cycle;
+// the graduates tab already reflects the selected cycle via isGraduate
+// above, so narrowing it again by exact cohortYear would hide the very
+// cohorts that cycle just promoted into it.
+function studentsForView(students: Student[], v: DashboardView, cohortFilter: string): Student[] {
+  const byView =
+    v === GRADUATED_VIEW
+      ? students.filter((s) => isGraduate(s, cohortFilter))
+      : students.filter((s) => s.track === v && !isGraduate(s, cohortFilter));
+  return cohortFilter && v !== GRADUATED_VIEW ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
 }
 
 export default function DashboardPage() {
@@ -58,15 +82,7 @@ export default function DashboardPage() {
     return unsubscribe;
   }, [faculty]);
 
-  const studentsByView = (v: DashboardView) =>
-    v === GRADUATED_VIEW
-      ? students.filter(isGraduate)
-      : students.filter((s) => s.track === v && !isGraduate(s));
-
-  const countForView = (v: DashboardView) => {
-    const byView = studentsByView(v);
-    return cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter).length : byView.length;
-  };
+  const countForView = (v: DashboardView) => studentsForView(students, v, cohortFilter).length;
 
   const viewOptions = useMemo(
     () => [
@@ -84,12 +100,18 @@ export default function DashboardPage() {
   );
 
   const visibleStudents = useMemo(() => {
-    const byView = studentsByView(view);
-    const byCohort = cohortFilter ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
+    const byView = studentsForView(students, view, cohortFilter);
     return view === StudentTrack.REGULAR && yearFilter
-      ? byCohort.filter((s) => s.cohortYear && activeYearOfStudy(s.cohortYear) === yearFilter)
-      : byCohort;
+      ? byView.filter((s) => s.cohortYear && activeYearOfStudy(s.cohortYear) === yearFilter)
+      : byView;
   }, [students, view, cohortFilter, yearFilter]);
+
+  // For the name search: every tab's students for the selected cycle, so
+  // searching by name surfaces matches regardless of which tab is active.
+  const searchableStudents = useMemo(() => {
+    const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW];
+    return views.flatMap((v) => studentsForView(students, v, cohortFilter));
+  }, [students, cohortFilter]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -129,7 +151,7 @@ export default function DashboardPage() {
           className="rounded-md border border-gray-300 px-3 py-2 text-sm"
         >
           <option value="">{he.dashboard.cohortFilterAll}</option>
-          {HEBREW_YEAR_VALUES.map((y) => (
+          {[...HEBREW_YEAR_VALUES].reverse().map((y) => (
             <option key={y} value={y}>
               {cohortYearOptionLabel(y)}
             </option>
@@ -150,7 +172,7 @@ export default function DashboardPage() {
           </select>
         )}
       </div>
-      <StudentsCardGrid students={visibleStudents} candidates={candidates} />
+      <StudentsCardGrid students={visibleStudents} allStudents={searchableStudents} candidates={candidates} />
 
       {showImport && <StudentsImportModal onClose={() => setShowImport(false)} onImported={() => {}} />}
 

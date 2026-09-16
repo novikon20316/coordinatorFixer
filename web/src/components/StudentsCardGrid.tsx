@@ -5,7 +5,17 @@ import { Candidate, he, Student } from "@admin-coordinator/shared";
 import { StudentCard } from "./StudentCard";
 import { findRequiredCompletionCourses } from "../lib/completionCourses";
 
-export function StudentsCardGrid({ students, candidates = [] }: { students: Student[]; candidates?: Candidate[] }) {
+export function StudentsCardGrid({
+  students,
+  allStudents,
+  candidates = [],
+}: {
+  students: Student[];
+  // Optional broader pool (e.g. every tab's students) to search across once
+  // the coordinator types a query, instead of only the current tab's list.
+  allStudents?: Student[];
+  candidates?: Candidate[];
+}) {
   const [search, setSearch] = useState("");
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
   // ordered by name rather than Firestore's arbitrary insertion order.
@@ -25,14 +35,15 @@ export function StudentsCardGrid({ students, candidates = [] }: { students: Stud
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const pool = q && allStudents ? allStudents : students;
     const matches = q
-      ? students.filter((s) => s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
-      : students;
+      ? pool.filter((s) => s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
+      : pool;
     return [...matches].sort((a, b) => {
       const cmp = a.fullName.localeCompare(b.fullName, "he");
       return sortAscending ? cmp : -cmp;
     });
-  }, [students, search, sortAscending]);
+  }, [students, allStudents, search, sortAscending]);
 
   return (
     <div className="flex flex-col gap-4">

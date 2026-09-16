@@ -81,7 +81,7 @@ export const he = {
 
   dashboard: {
     tabs: {
-      [StudentTrack.REGULAR]: "מן המניין",
+      [StudentTrack.REGULAR]: "פעיל",
       [StudentTrack.COMPLETION]: "בהשלמה",
     } as Record<StudentTrack, string>,
     addStudent: "הוספת תלמיד",
