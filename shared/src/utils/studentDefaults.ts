@@ -4,6 +4,8 @@ import {
   DATA_SCIENCE_CORE_CURRICULUM_COURSES,
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
   DATA_SCIENCE_PROJECT_MILESTONES,
+  dataScienceCreditRequirements,
+  DataScienceCreditRequirements,
 } from "../constants/dataScienceCurriculum";
 import { activeYearOfStudy, CURRENT_HEBREW_YEAR, HebrewYear, yearOfStudy } from "../constants/hebrewYear";
 import { he } from "../i18n/he";
@@ -11,7 +13,10 @@ import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, Sem
 
 /** Builds a fresh course-completion checklist for a newly created student.
  *  Only Data Science has a known catalog today (see dataScienceCurriculum.ts)
- *  - other faculties get no categories, same as before this feature existed. */
+ *  - other faculties get no categories, same as before this feature existed.
+ *  No requiredCredits is baked in here - each category's target varies by
+ *  the student's cohort year (see resolveCategoryRequiredCredits below), so
+ *  it's resolved fresh every time it's needed instead of stored. */
 export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletionCategory[] {
   if (faculty !== Faculty.DATA_SCIENCE) return [];
   return [
@@ -27,7 +32,6 @@ export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletion
       label: "קורסי ליבה",
       fixedCatalog: false,
       requiredCount: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.core.requiredCount,
-      requiredCredits: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.core.requiredCredits,
       entries: [],
     },
     {
@@ -35,10 +39,27 @@ export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletion
       label: "קורסי בחירה",
       fixedCatalog: false,
       requiredCount: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.elective.requiredCount,
-      requiredCredits: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.elective.requiredCredits,
       entries: [],
     },
   ];
+}
+
+/** The נ"ז target that applies to one of a student's course-completion
+ *  categories, for the curriculum in force when they started (see
+ *  dataScienceCreditRequirements) - undefined for a faculty with no known
+ *  curriculum, or a category key it doesn't recognize (falls back to
+ *  courseCategoryBalance's own sum-of-entries behavior). Resolved fresh from
+ *  the student's current faculty/cohortYear rather than read from the
+ *  category's own (unused) requiredCredits field, so it stays correct even
+ *  for a student created before this cohort-based curriculum existed. */
+export function resolveCategoryRequiredCredits(
+  faculty: Faculty,
+  cohortYear: HebrewYear | undefined,
+  categoryKey: string
+): number | undefined {
+  if (faculty !== Faculty.DATA_SCIENCE) return undefined;
+  const requirements = dataScienceCreditRequirements(cohortYear);
+  return requirements[categoryKey as keyof DataScienceCreditRequirements];
 }
 
 /** Builds a fresh project/thesis milestone checklist for a newly created
@@ -207,12 +228,12 @@ export function hasFailingGrade(
 }
 
 export interface CourseCategoryBalance {
-  /** Total נ"ז the category asks for. For "core"/"elective" this is the
-   *  category's own fixed requiredCredits target; the fixed-catalog
-   *  "core_curriculum" category has no such target (its requirement is a
-   *  course count, not a credit total), so its "required" total is instead
-   *  the sum of whatever credits a coordinator has typed in for its (fixed)
-   *  course list. */
+  /** Total נ"ז the category asks for - normally `requiredCredits` (resolved
+   *  by cohort year for Data Science, see resolveCategoryRequiredCredits).
+   *  A category with no known target (no requiredCredits passed in, e.g. a
+   *  faculty with no curriculum on file) falls back to the sum of whatever
+   *  credits a coordinator has typed in for its course list, so the balance
+   *  row still shows something sensible instead of a bare 0. */
   required: number;
   /** Sum of נ"ז from entries actually checked off passed. */
   learned: number;
@@ -223,9 +244,12 @@ export interface CourseCategoryBalance {
   average: number | null;
 }
 
-export function courseCategoryBalance(category: CourseCompletionCategory): CourseCategoryBalance {
+export function courseCategoryBalance(
+  category: CourseCompletionCategory,
+  requiredCredits?: number
+): CourseCategoryBalance {
   const required =
-    category.requiredCredits ??
+    requiredCredits ??
     category.entries.reduce((sum, e) => sum + (typeof e.credits === "number" ? e.credits : 0), 0);
   const learned = category.entries.reduce(
     (sum, e) => sum + (e.passed && typeof e.credits === "number" ? e.credits : 0),
@@ -238,8 +262,14 @@ export function courseCategoryBalance(category: CourseCompletionCategory): Cours
 
 /** True once any category still has נ"ז remaining per courseCategoryBalance
  *  above - used for the card's "נ"ז חסרים" badge. */
-export function hasCreditShortfall(categories: CourseCompletionCategory[] | undefined): boolean {
-  return (categories ?? []).some((c) => courseCategoryBalance(c).remaining > 0);
+export function hasCreditShortfall(
+  categories: CourseCompletionCategory[] | undefined,
+  faculty: Faculty,
+  cohortYear: HebrewYear | undefined
+): boolean {
+  return (categories ?? []).some(
+    (c) => courseCategoryBalance(c, resolveCategoryRequiredCredits(faculty, cohortYear, c.key)).remaining > 0
+  );
 }
 
 /** Merges one freshly-imported semester's grades into a student's existing

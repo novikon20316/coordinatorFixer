@@ -21,6 +21,8 @@
  * milestone list here too.
  */
 
+import { HebrewYear } from "./hebrewYear";
+
 /** The department's 7 required core-curriculum courses (fixed catalog,
  *  checkbox-style), in Hebrew - matches the course names as the department's
  *  own grade sheets report them (see shared/src/utils/studentDefaults.ts's
@@ -58,13 +60,49 @@ export const DATA_SCIENCE_CORE_CURRICULUM_ALIASES: Record<string, string[]> = {
 /**
  * The other two graduation requirements, on top of the core curriculum above.
  * Their actual course lists vary by year/college and aren't a fixed catalog
- * (per the coordinator) - only their target course count and minimum credit
- * total are fixed; coordinators type in the specific courses a student took.
+ * (per the coordinator) - only their target course count is fixed (their
+ * minimum credit total instead varies by cohort year - see
+ * DATA_SCIENCE_CREDIT_REQUIREMENTS below); coordinators type in the specific
+ * courses a student took.
  */
 export const DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS = {
-  core: { requiredCount: 2, requiredCredits: 6 },
-  elective: { requiredCount: 3, requiredCredits: 9 },
+  core: { requiredCount: 2 },
+  elective: { requiredCount: 3 },
 } as const;
+
+/** Minimum נ"ז totals for each of the three course-completion categories,
+ *  which the coordinator changed starting the תשפ"ו cohort (2026-09) - a
+ *  cohort's target follows whichever curriculum was in force when they
+ *  started, for as long as they're enrolled, not whatever is current now. */
+export interface DataScienceCreditRequirements {
+  core_curriculum: number;
+  core: number;
+  elective: number;
+}
+
+const DATA_SCIENCE_CREDIT_REQUIREMENTS_LEGACY: DataScienceCreditRequirements = {
+  core_curriculum: 20.5,
+  core: 9,
+  elective: 9,
+};
+
+const DATA_SCIENCE_CREDIT_REQUIREMENTS_CURRENT: DataScienceCreditRequirements = {
+  core_curriculum: 23,
+  core: 6,
+  elective: 9,
+};
+
+/** Cohorts still following the pre-תשפ"ו credit totals. */
+const DATA_SCIENCE_LEGACY_CREDIT_COHORTS: HebrewYear[] = ["תשפג", "תשפד", "תשפה"];
+
+/** The credit-requirement set that applies to a student who started in
+ *  `cohortYear` - undefined (a student with no cohort year set yet) gets the
+ *  current curriculum, same as any cohort from תשפ"ו onward. */
+export function dataScienceCreditRequirements(cohortYear: HebrewYear | undefined): DataScienceCreditRequirements {
+  return cohortYear && DATA_SCIENCE_LEGACY_CREDIT_COHORTS.includes(cohortYear)
+    ? DATA_SCIENCE_CREDIT_REQUIREMENTS_LEGACY
+    : DATA_SCIENCE_CREDIT_REQUIREMENTS_CURRENT;
+}
 
 /** The msc_project process's milestones for Data Science, in order. */
 export const DATA_SCIENCE_PROJECT_MILESTONES: { key: string; nameHe: string; nameEn: string }[] = [

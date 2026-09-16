@@ -8,12 +8,15 @@ import {
   courseCategoryBalance,
   CourseCompletionCategory,
   CourseCompletionEntry,
+  Faculty,
   hasCreditShortfall,
   hasFailingGrade,
   he,
+  HebrewYear,
   isCourseCategoryComplete,
   isCourseworkComplete,
   MilestoneProgress,
+  resolveCategoryRequiredCredits,
   SemesterRecord,
   Student,
   STUDENT_STATUS_VALUES,
@@ -134,7 +137,7 @@ export function StudentCard({
   const missingMilestones = milestones.filter((m) => !m.done);
   const nothingMissing = missingCategories.length === 0 && missingMilestones.length === 0;
   const failedGrade = hasFailingGrade(courseCategories, student.academicHistory);
-  const creditShortfall = hasCreditShortfall(courseCategories);
+  const creditShortfall = hasCreditShortfall(courseCategories, student.faculty, student.cohortYear);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -323,7 +326,13 @@ export function StudentCard({
           </section>
 
           {courseCategories.map((category) => (
-            <CourseCategorySection key={category.key} category={category} onChange={(entries) => updateCategory(category.key, entries)} />
+            <CourseCategorySection
+              key={category.key}
+              category={category}
+              faculty={student.faculty}
+              cohortYear={student.cohortYear}
+              onChange={(entries) => updateCategory(category.key, entries)}
+            />
           ))}
 
           <AcademicHistorySection history={student.academicHistory} />
@@ -354,14 +363,19 @@ export function StudentCard({
 
 function CourseCategorySection({
   category,
+  faculty,
+  cohortYear,
   onChange,
 }: {
   category: CourseCompletionCategory;
+  faculty: Faculty;
+  cohortYear: HebrewYear | undefined;
   onChange: (entries: CourseCompletionEntry[]) => void;
 }) {
+  const requiredCredits = resolveCategoryRequiredCredits(faculty, cohortYear, category.key);
   const passedCount = category.entries.filter((e) => e.passed).length;
-  const requirement = category.requiredCredits
-    ? `${passedCount}/${category.requiredCount} (מינ' ${category.requiredCredits} ${he.studentCard.credits})`
+  const requirement = requiredCredits
+    ? `${passedCount}/${category.requiredCount} (מינ' ${requiredCredits} ${he.studentCard.credits})`
     : `${passedCount}/${category.requiredCount}`;
 
   function updateEntry(index: number, patch: Partial<CourseCompletionEntry>) {
@@ -433,7 +447,7 @@ function CourseCategorySection({
           + {he.studentCard.addCourse}
         </button>
       )}
-      <CourseCategoryBalanceRow balance={courseCategoryBalance(category)} />
+      <CourseCategoryBalanceRow balance={courseCategoryBalance(category, requiredCredits)} />
     </section>
   );
 }
