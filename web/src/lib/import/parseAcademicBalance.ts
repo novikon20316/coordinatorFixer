@@ -13,19 +13,32 @@ import { PdfPage, PdfTextItem } from "./pdfText";
  *
  * The report has no text-layer table structure - rows are reconstructed from
  * each text run's (x, y) position, calibrated against a real export (see the
- * x-bands below). Two rules drive what counts as a real course:
+ * x-bands below). A few rules drive what counts as a real course and what
+ * נ"ז to import for it:
  * - "תחום משני" values like "ליבה 1"/"ליבה 2" are slot labels, not course
  *   names - the real course name is the row(s) nested under that slot,
  *   found under "שם שעור".
- * - A course with a grade (ציון) has its נ"ז under נלמד; one the student is
- *   enrolled in but not yet graded has its נ"ז under נרשם instead. A slot
- *   with no course at all (only נותר filled, or no rows under it) is simply
- *   skipped - it's an unmet requirement, not a course.
+ * - Under "ליבה"/"קורסי בחירה": a course with a grade (ציון) has its נ"ז
+ *   under נלמד; one the student is enrolled in but not yet graded has it
+ *   under נרשם instead. A slot with no course at all (only נותר filled, or
+ *   no rows under it) is simply skipped - it's an unmet requirement, not a
+ *   course.
+ * - Under "מדעי הנתונים" (the fixed core-curriculum catalog): every course
+ *   in the catalog prints its own row whether taken or not, so unlike
+ *   ליבה/בחירה there's no "row missing entirely" case to skip. The נ"ז to
+ *   import is always נדרש (that course's standard credit weight) rather
+ *   than נלמד - נלמד can exceed נדרש when a student took a heavier version
+ *   of the course (flagged with "!" in the report, since the excess never
+ *   counts toward the total), and נדרש is what's meaningful either way,
+ *   whether or not the course has a grade yet.
  */
 
 interface ParsedCourseRow {
   name: string;
   credits?: number;
+  /** נדרש for this row - only meaningful for מדעי הנתונים rows, which use
+   *  this (not `credits`) as the course's נ"ז - see buildAcademicBalancePreview. */
+  required?: number;
   grade?: number;
 }
 
@@ -53,6 +66,7 @@ const KNOWN_DOMAINS = ["ליבה", "קורסי בחירה", "מדעי הנתונ
 // rendered a few points off its header still lands unambiguously.
 const LEARNED_CREDITS_X = [152, 172] as const; // נלמד - a graded course's נ"ז
 const ENROLLED_CREDITS_X = [108, 124] as const; // נרשם - an ungraded, in-progress course's נ"ז
+const REQUIRED_X = [178, 194] as const; // נדרש - a course's own standard נ"ז weight
 const GRADE_X = [85, 104] as const; // ציון
 const BANNER_MIN_X = 500; // domain/sub-domain banner rows sit far to the right
 const COURSE_NAME_MAX_X = 400; // a wrapped course name's continuation line
@@ -153,6 +167,7 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
     }
 
     let credits: number | undefined;
+    let required: number | undefined;
     let grade: number | undefined;
     for (const i of row.items) {
       const t = i.text.trim();
@@ -160,10 +175,11 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
       const n = Number(t);
       if (inBand(i.x, LEARNED_CREDITS_X)) credits = n;
       else if (credits === undefined && inBand(i.x, ENROLLED_CREDITS_X)) credits = n;
+      else if (inBand(i.x, REQUIRED_X)) required = n;
       else if (inBand(i.x, GRADE_X)) grade = n;
     }
 
-    const parsedRow: ParsedCourseRow = { name: nameItem.text.trim(), credits, grade };
+    const parsedRow: ParsedCourseRow = { name: nameItem.text.trim(), credits, required, grade };
     lastRow = parsedRow;
 
     if (currentDomain === "ליבה") core.push(parsedRow);
@@ -273,7 +289,10 @@ export function buildAcademicBalancePreview(
       const entry = mandatoryCategory.entries.find((e) => e.name === canonicalName);
       if (!entry) continue;
       const gradeFill = entry.grade === undefined ? row.grade : undefined;
-      const creditsFill = entry.credits === undefined ? row.credits : undefined;
+      // נדרש, not נלמד - a course's standard נ"ז weight, present whether or
+      // not the student has taken it, and correct even when נלמד exceeds it
+      // (see the module comment on the "!" over-credit case).
+      const creditsFill = entry.credits === undefined ? row.required : undefined;
       if (gradeFill !== undefined || creditsFill !== undefined) {
         mandatoryUpdates.push({ name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
