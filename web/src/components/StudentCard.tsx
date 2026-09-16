@@ -4,8 +4,12 @@ import { useState } from "react";
 import {
   buildDefaultCourseCategories,
   buildDefaultMilestones,
+  CourseCategoryBalance,
+  courseCategoryBalance,
   CourseCompletionCategory,
   CourseCompletionEntry,
+  hasCreditShortfall,
+  hasFailingGrade,
   he,
   isCourseCategoryComplete,
   isCourseworkComplete,
@@ -18,7 +22,7 @@ import {
   syncCourseCategoriesFromHistory,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
-import { StudentDetailModal } from "./StudentDetailModal";
+import { useDetailPanels } from "../context/DetailPanelsContext";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
@@ -69,7 +73,7 @@ export function StudentCard({
   const [supervisorName, setSupervisorName] = useState(student.supervisorName ?? "");
   const [finalGrade, setFinalGrade] = useState(student.finalGrade != null ? String(student.finalGrade) : "");
   const [gpa, setGpa] = useState(student.gpa != null ? String(student.gpa) : "");
-  const [showDetail, setShowDetail] = useState(false);
+  const { openDetail } = useDetailPanels();
   const [showMissing, setShowMissing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showClearanceComingSoon, setShowClearanceComingSoon] = useState(false);
@@ -129,6 +133,8 @@ export function StudentCard({
   const missingCategories = courseCategories.filter((c) => !isCourseCategoryComplete(c));
   const missingMilestones = milestones.filter((m) => !m.done);
   const nothingMissing = missingCategories.length === 0 && missingMilestones.length === 0;
+  const failedGrade = hasFailingGrade(courseCategories, student.academicHistory);
+  const creditShortfall = hasCreditShortfall(courseCategories);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -156,6 +162,26 @@ export function StudentCard({
                 {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status, student.track)}
               </p>
             )}
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">
+                {he.studentCard.gpaBadgeLabel}: {student.gpa || "—"}
+              </span>
+              {!complete && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                  {he.studentCard.missingCoursesBadge}
+                </span>
+              )}
+              {failedGrade && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800">
+                  {he.studentCard.failedCourseBadge}
+                </span>
+              )}
+              {creditShortfall && (
+                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-800">
+                  {he.studentCard.creditShortfallBadge}
+                </span>
+              )}
+            </div>
           </div>
         </button>
         <select
@@ -305,7 +331,7 @@ export function StudentCard({
           {saveError && <p className="text-xs text-red-600">{saveError}</p>}
 
           <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
-            <button onClick={() => setShowDetail(true)} className="text-xs font-medium text-blue-700 hover:underline">
+            <button onClick={() => openDetail(student)} className="text-xs font-medium text-blue-700 hover:underline">
               {he.studentCard.moreDetails}
             </button>
             {complete &&
@@ -322,8 +348,6 @@ export function StudentCard({
           </div>
         </div>
       )}
-
-      {showDetail && <StudentDetailModal student={student} onClose={() => setShowDetail(false)} />}
     </div>
   );
 }
@@ -387,21 +411,19 @@ function CourseCategorySection({
               placeholder={he.studentCard.grade}
               className="w-16 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
             />
+            <input
+              type="number"
+              value={entry.credits ?? ""}
+              onChange={(e) =>
+                updateEntry(i, { credits: e.target.value === "" ? undefined : Number(e.target.value) })
+              }
+              placeholder={he.studentCard.credits}
+              className="w-14 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
+            />
             {!category.fixedCatalog && (
-              <>
-                <input
-                  type="number"
-                  value={entry.credits ?? ""}
-                  onChange={(e) =>
-                    updateEntry(i, { credits: e.target.value === "" ? undefined : Number(e.target.value) })
-                  }
-                  placeholder={he.studentCard.credits}
-                  className="w-14 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
-                />
-                <button onClick={() => removeRow(i)} className="text-xs text-red-600 hover:underline">
-                  {he.studentCard.removeCourse}
-                </button>
-              </>
+              <button onClick={() => removeRow(i)} className="text-xs text-red-600 hover:underline">
+                {he.studentCard.removeCourse}
+              </button>
             )}
           </div>
         ))}
@@ -411,7 +433,31 @@ function CourseCategorySection({
           + {he.studentCard.addCourse}
         </button>
       )}
+      <CourseCategoryBalanceRow balance={courseCategoryBalance(category)} />
     </section>
+  );
+}
+
+function CourseCategoryBalanceRow({ balance }: { balance: CourseCategoryBalance }) {
+  return (
+    <div className="mt-2 grid grid-cols-4 gap-1 rounded-md bg-gray-50 p-2 text-center text-[11px]">
+      <div>
+        <div className="font-semibold text-gray-700">{balance.required}</div>
+        <div className="text-gray-500">{he.studentCard.balanceRequired}</div>
+      </div>
+      <div>
+        <div className="font-semibold text-gray-700">{balance.learned}</div>
+        <div className="text-gray-500">{he.studentCard.balanceLearned}</div>
+      </div>
+      <div>
+        <div className="font-semibold text-gray-700">{balance.remaining}</div>
+        <div className="text-gray-500">{he.studentCard.balanceRemaining}</div>
+      </div>
+      <div>
+        <div className="font-semibold text-gray-700">{balance.average ?? "—"}</div>
+        <div className="text-gray-500">{he.studentCard.balanceGrade}</div>
+      </div>
+    </div>
   );
 }
 

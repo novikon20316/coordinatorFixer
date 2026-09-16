@@ -184,6 +184,64 @@ export function isDueForGraduationReview(
   return track === StudentTrack.REGULAR && !isGraduatedStatus(status) && yearOfStudy(cohortYear, asOfYear) === "GRADUATED";
 }
 
+/** A grade below this counts as a failing attempt for the "קורס נכשל" card
+ *  badge - the department's own passing threshold. */
+const FAILING_GRADE_THRESHOLD = 65;
+
+/** True once the student has a grade below FAILING_GRADE_THRESHOLD anywhere -
+ *  in the graduation checklist (courseCategories) or their raw imported
+ *  per-semester history - so a coordinator can spot at a glance that some
+ *  retake/appeal may be needed, even for a course a later grade already
+ *  overwrote in the checklist. */
+export function hasFailingGrade(
+  categories: CourseCompletionCategory[] | undefined,
+  academicHistory: SemesterRecord[] | undefined
+): boolean {
+  const inCategories = (categories ?? []).some((c) =>
+    c.entries.some((e) => typeof e.grade === "number" && e.grade < FAILING_GRADE_THRESHOLD)
+  );
+  if (inCategories) return true;
+  return (academicHistory ?? []).some((r) =>
+    r.courses.some((c) => typeof c.grade === "number" && c.grade < FAILING_GRADE_THRESHOLD)
+  );
+}
+
+export interface CourseCategoryBalance {
+  /** Total נ"ז the category asks for. For "core"/"elective" this is the
+   *  category's own fixed requiredCredits target; the fixed-catalog
+   *  "core_curriculum" category has no such target (its requirement is a
+   *  course count, not a credit total), so its "required" total is instead
+   *  the sum of whatever credits a coordinator has typed in for its (fixed)
+   *  course list. */
+  required: number;
+  /** Sum of נ"ז from entries actually checked off passed. */
+  learned: number;
+  /** required minus learned, never negative. */
+  remaining: number;
+  /** Average of every entry's numeric grade in this category, or null if
+   *  none has a grade yet. */
+  average: number | null;
+}
+
+export function courseCategoryBalance(category: CourseCompletionCategory): CourseCategoryBalance {
+  const required =
+    category.requiredCredits ??
+    category.entries.reduce((sum, e) => sum + (typeof e.credits === "number" ? e.credits : 0), 0);
+  const learned = category.entries.reduce(
+    (sum, e) => sum + (e.passed && typeof e.credits === "number" ? e.credits : 0),
+    0
+  );
+  const grades = category.entries.map((e) => e.grade).filter((g): g is number => typeof g === "number");
+  const average = grades.length > 0 ? Math.round((grades.reduce((a, b) => a + b, 0) / grades.length) * 100) / 100 : null;
+  return { required, learned, remaining: Math.max(required - learned, 0), average };
+}
+
+/** True once any category still has נ"ז remaining per courseCategoryBalance
+ *  above - used for the card's "נ"ז חסרים" badge. */
+export function hasCreditShortfall(categories: CourseCompletionCategory[] | undefined): boolean {
+  return (categories ?? []).some((c) => courseCategoryBalance(c).remaining > 0);
+}
+
 /** Merges one freshly-imported semester's grades into a student's existing
  *  academicHistory, replacing any prior entry for the same
  *  (yearOfStudy, semester, hebrewYear) - re-importing a file updates that

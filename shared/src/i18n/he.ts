@@ -154,6 +154,14 @@ export const he = {
     missingCourseCategory: "{label}: נותרו {remaining}",
     missingMilestonesLabel: "אבני דרך שטרם הושלמו",
     lecturer: "מרצה",
+    gpaBadgeLabel: "ממוצע",
+    missingCoursesBadge: "קורסים חסרים",
+    failedCourseBadge: "קורס נכשל",
+    creditShortfallBadge: "נ\"ז חסרים",
+    balanceRequired: "נדרש",
+    balanceLearned: "נלמד",
+    balanceRemaining: "נותר",
+    balanceGrade: "ציון",
   },
 
   studentDetail: {
@@ -341,6 +349,7 @@ export const he = {
     noData: "אין נתונים להצגה",
     error: "אירעה שגיאה",
     comingSoon: "בקרוב",
+    back: "חזרה",
   },
 };
 

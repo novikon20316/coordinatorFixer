@@ -3,9 +3,20 @@
 import { useMemo, useState } from "react";
 import { Candidate, he, Student } from "@admin-coordinator/shared";
 import { StudentCard } from "./StudentCard";
+import { DetailPanelsDock, DETAIL_PANELS_DOCK_RESERVED_SPACE_CLASS } from "./DetailPanelsDock";
+import { DetailPanelsProvider, useDetailPanels } from "../context/DetailPanelsContext";
 import { findRequiredCompletionCourses } from "../lib/completionCourses";
 
-export function StudentsCardGrid({
+export function StudentsCardGrid(props: { students: Student[]; allStudents?: Student[]; candidates?: Candidate[] }) {
+  return (
+    <DetailPanelsProvider>
+      <StudentsCardGridBody {...props} />
+      <DetailPanelsDock />
+    </DetailPanelsProvider>
+  );
+}
+
+function StudentsCardGridBody({
   students,
   allStudents,
   candidates = [],
@@ -16,6 +27,7 @@ export function StudentsCardGrid({
   allStudents?: Student[];
   candidates?: Candidate[];
 }) {
+  const { openStudents } = useDetailPanels();
   const [search, setSearch] = useState("");
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
   // ordered by name rather than Firestore's arbitrary insertion order.
@@ -46,40 +58,40 @@ export function StudentsCardGrid({
   }, [students, allStudents, search, sortAscending]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${openStudents.length > 0 ? DETAIL_PANELS_DOCK_RESERVED_SPACE_CLASS : ""}`}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold text-gray-900">{he.dashboard.studentsListTitle}</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSortAscending((v) => !v)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            {sortAscending ? he.dashboard.sortAscending : he.dashboard.sortDescending}
-          </button>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={he.dashboard.searchPlaceholder}
-            className="w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 py-16 text-center text-gray-500">{he.common.noData}</div>
-      ) : (
-        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((s) => (
-            <StudentCard
-              key={s.id}
-              student={s}
-              requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
-              expanded={expandedIds.has(s.id)}
-              onToggleExpanded={() => toggleExpanded(s.id)}
+          <h2 className="font-semibold text-gray-900">{he.dashboard.studentsListTitle}</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSortAscending((v) => !v)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              {sortAscending ? he.dashboard.sortAscending : he.dashboard.sortDescending}
+            </button>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={he.dashboard.searchPlaceholder}
+              className="w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
             />
-          ))}
+          </div>
         </div>
-      )}
+
+        {filtered.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 py-16 text-center text-gray-500">{he.common.noData}</div>
+        ) : (
+          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((s) => (
+              <StudentCard
+                key={s.id}
+                student={s}
+                requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
+                expanded={expandedIds.has(s.id)}
+                onToggleExpanded={() => toggleExpanded(s.id)}
+              />
+            ))}
+          </div>
+        )}
     </div>
   );
 }
