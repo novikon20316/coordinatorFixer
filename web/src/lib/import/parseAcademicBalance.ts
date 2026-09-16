@@ -215,10 +215,15 @@ export interface AcademicBalanceImportPreview {
   fullName?: string;
   newCoreEntries: CourseCompletionEntry[];
   newElectiveEntries: CourseCompletionEntry[];
-  /** נ"ז fills for a core/elective entry that already exists (by name) but
-   *  has no credits yet - e.g. a coordinator typed the course name by hand,
-   *  or a semester-grade import filled its grade but that source has no נ"ז
-   *  column at all (see SemesterCourseGrade in shared/src/types/student.ts). */
+  /** נ"ז syncs for a core/elective entry that already exists (by name) but
+   *  whose credits don't match the PDF - e.g. a coordinator typed the course
+   *  name by hand with no נ"ז, a semester-grade import filled its grade but
+   *  that source has no נ"ז column at all (see SemesterCourseGrade in
+   *  shared/src/types/student.ts), or an earlier import run recorded the
+   *  wrong value. נ"ז is treated as authoritative from this official report,
+   *  so re-importing the same PDF keeps correcting it rather than only
+   *  filling it once - unlike grade/passed on an existing entry, which are
+   *  always left exactly as the coordinator set them. */
   coreCreditFills: { name: string; credits: number }[];
   electiveCreditFills: { name: string; credits: number }[];
   mandatoryUpdates: { name: string; grade?: number; credits?: number }[];
@@ -229,9 +234,9 @@ function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
 }
 
 /** Splits a domain's parsed rows into brand-new entries (no existing entry
- *  with that name) and נ"ז fills for entries that already exist but have no
- *  credits recorded yet - grade/passed on an existing entry is left exactly
- *  as the coordinator set it either way, only the missing נ"ז gets filled. */
+ *  with that name) and נ"ז syncs for entries that already exist but whose
+ *  credits don't match this PDF - see the coreCreditFills doc comment above
+ *  for why נ"ז keeps syncing on every import instead of only filling once. */
 function splitNewAndCreditFills(
   existing: CourseCompletionEntry[],
   rows: ParsedCourseRow[]
@@ -246,7 +251,7 @@ function splitNewAndCreditFills(
     seen.add(key);
     const existingEntry = byName.get(key);
     if (existingEntry) {
-      if (existingEntry.credits === undefined && row.credits !== undefined) {
+      if (row.credits !== undefined && row.credits !== existingEntry.credits) {
         creditFills.push({ name: key, credits: row.credits });
       }
     } else {
@@ -266,10 +271,13 @@ function canonicalCoreCourseName(name: string): string {
 
 /** Builds a preview of what this PDF would change on `student` - shown to
  *  the coordinator before anything is saved (see AcademicBalanceImportModal).
- *  Grade and נ"ז are filled independently and never overwritten once set by
- *  hand - a core_curriculum entry whose grade already came from a semester-
- *  grade import (which never carries נ"ז at all) still gets its credits
- *  filled in here, even though its grade is left untouched. */
+ *  Grade and נ"ז are handled independently: a grade already entered by hand
+ *  is never overwritten, but נ"ז is treated as authoritative from this
+ *  official report and kept in sync on every import (a core_curriculum
+ *  entry whose grade already came from a semester-grade import - which
+ *  never carries נ"ז at all - still gets its credits filled in here, even
+ *  though its grade is left untouched; re-importing the same PDF later also
+ *  corrects a credits value an earlier import got wrong). */
 export function buildAcademicBalancePreview(
   result: AcademicBalanceResult,
   student: Student
@@ -291,8 +299,9 @@ export function buildAcademicBalancePreview(
       const gradeFill = entry.grade === undefined ? row.grade : undefined;
       // נדרש, not נלמד - a course's standard נ"ז weight, present whether or
       // not the student has taken it, and correct even when נלמד exceeds it
-      // (see the module comment on the "!" over-credit case).
-      const creditsFill = entry.credits === undefined ? row.required : undefined;
+      // (see the module comment on the "!" over-credit case). Synced on
+      // every import (not just when missing) so a re-import can correct it.
+      const creditsFill = row.required !== undefined && row.required !== entry.credits ? row.required : undefined;
       if (gradeFill !== undefined || creditsFill !== undefined) {
         mandatoryUpdates.push({ name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
