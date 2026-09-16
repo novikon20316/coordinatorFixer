@@ -81,7 +81,11 @@ export function AcademicBalanceImportModal({
   }
 
   const totalChanges = preview
-    ? preview.newCoreEntries.length + preview.newElectiveEntries.length + preview.mandatoryUpdates.length
+    ? preview.newCoreEntries.length +
+      preview.newElectiveEntries.length +
+      preview.coreCreditFills.length +
+      preview.electiveCreditFills.length +
+      preview.mandatoryUpdates.length
     : 0;
 
   return (
@@ -117,6 +121,12 @@ export function AcademicBalanceImportModal({
             </p>
             <p className="text-xs text-gray-600">
               {he.academicBalanceImport.electiveCount.replace("{count}", String(preview.newElectiveEntries.length))}
+            </p>
+            <p className="text-xs text-gray-600">
+              {he.academicBalanceImport.creditFillCount.replace(
+                "{count}",
+                String(preview.coreCreditFills.length + preview.electiveCreditFills.length)
+              )}
             </p>
             <p className="text-xs text-gray-600">
               {he.academicBalanceImport.mandatoryCount.replace("{count}", String(preview.mandatoryUpdates.length))}

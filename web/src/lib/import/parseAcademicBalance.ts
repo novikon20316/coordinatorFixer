@@ -199,6 +199,12 @@ export interface AcademicBalanceImportPreview {
   fullName?: string;
   newCoreEntries: CourseCompletionEntry[];
   newElectiveEntries: CourseCompletionEntry[];
+  /** נ"ז fills for a core/elective entry that already exists (by name) but
+   *  has no credits yet - e.g. a coordinator typed the course name by hand,
+   *  or a semester-grade import filled its grade but that source has no נ"ז
+   *  column at all (see SemesterCourseGrade in shared/src/types/student.ts). */
+  coreCreditFills: { name: string; credits: number }[];
+  electiveCreditFills: { name: string; credits: number }[];
   mandatoryUpdates: { name: string; grade?: number; credits?: number }[];
 }
 
@@ -206,20 +212,32 @@ function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
   return { name: row.name, credits: row.credits, grade: row.grade, passed: row.grade !== undefined };
 }
 
-/** New entries only - skips any row whose name already exists in the
- *  category (by trimmed name), so re-importing the same PDF is a no-op
- *  instead of appending duplicates. */
-function dedupeNew(existing: CourseCompletionEntry[], rows: ParsedCourseRow[]): CourseCompletionEntry[] {
-  const existingNames = new Set(existing.map((e) => e.name.trim()));
+/** Splits a domain's parsed rows into brand-new entries (no existing entry
+ *  with that name) and נ"ז fills for entries that already exist but have no
+ *  credits recorded yet - grade/passed on an existing entry is left exactly
+ *  as the coordinator set it either way, only the missing נ"ז gets filled. */
+function splitNewAndCreditFills(
+  existing: CourseCompletionEntry[],
+  rows: ParsedCourseRow[]
+): { newEntries: CourseCompletionEntry[]; creditFills: { name: string; credits: number }[] } {
+  const byName = new Map(existing.map((e) => [e.name.trim(), e]));
   const seen = new Set<string>();
-  const result: CourseCompletionEntry[] = [];
+  const newEntries: CourseCompletionEntry[] = [];
+  const creditFills: { name: string; credits: number }[] = [];
   for (const row of rows) {
     const key = row.name.trim();
-    if (!key || existingNames.has(key) || seen.has(key)) continue;
+    if (!key || seen.has(key)) continue;
     seen.add(key);
-    result.push(toEntry(row));
+    const existingEntry = byName.get(key);
+    if (existingEntry) {
+      if (existingEntry.credits === undefined && row.credits !== undefined) {
+        creditFills.push({ name: key, credits: row.credits });
+      }
+    } else {
+      newEntries.push(toEntry(row));
+    }
   }
-  return result;
+  return { newEntries, creditFills };
 }
 
 function canonicalCoreCourseName(name: string): string {
@@ -232,9 +250,10 @@ function canonicalCoreCourseName(name: string): string {
 
 /** Builds a preview of what this PDF would change on `student` - shown to
  *  the coordinator before anything is saved (see AcademicBalanceImportModal).
- *  Never overwrites a grade already entered by hand on a core_curriculum
- *  entry, matching syncCourseCategoriesFromHistory's own philosophy for that
- *  fixed-catalog category. */
+ *  Grade and נ"ז are filled independently and never overwritten once set by
+ *  hand - a core_curriculum entry whose grade already came from a semester-
+ *  grade import (which never carries נ"ז at all) still gets its credits
+ *  filled in here, even though its grade is left untouched. */
 export function buildAcademicBalancePreview(
   result: AcademicBalanceResult,
   student: Student
@@ -244,21 +263,32 @@ export function buildAcademicBalancePreview(
   const electiveCategory = categories.find((c) => c.key === "elective");
   const mandatoryCategory = categories.find((c) => c.key === "core_curriculum");
 
-  const newCoreEntries = dedupeNew(coreCategory?.entries ?? [], result.coreRows);
-  const newElectiveEntries = dedupeNew(electiveCategory?.entries ?? [], result.electiveRows);
+  const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], result.coreRows);
+  const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], result.electiveRows);
 
   const mandatoryUpdates: { name: string; grade?: number; credits?: number }[] = [];
   if (mandatoryCategory) {
     for (const row of result.mandatoryRows) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
       const entry = mandatoryCategory.entries.find((e) => e.name === canonicalName);
-      if (entry && entry.grade === undefined && (row.grade !== undefined || row.credits !== undefined)) {
-        mandatoryUpdates.push({ name: canonicalName, grade: row.grade, credits: row.credits });
+      if (!entry) continue;
+      const gradeFill = entry.grade === undefined ? row.grade : undefined;
+      const creditsFill = entry.credits === undefined ? row.credits : undefined;
+      if (gradeFill !== undefined || creditsFill !== undefined) {
+        mandatoryUpdates.push({ name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
     }
   }
 
-  return { idNumber: result.idNumber, fullName: result.fullName, newCoreEntries, newElectiveEntries, mandatoryUpdates };
+  return {
+    idNumber: result.idNumber,
+    fullName: result.fullName,
+    newCoreEntries: coreSplit.newEntries,
+    newElectiveEntries: electiveSplit.newEntries,
+    coreCreditFills: coreSplit.creditFills,
+    electiveCreditFills: electiveSplit.creditFills,
+    mandatoryUpdates,
+  };
 }
 
 /** Applies a preview onto a student's courseCategories - pure, so the
@@ -269,11 +299,27 @@ export function applyAcademicBalanceToCategories(
   preview: AcademicBalanceImportPreview
 ): CourseCompletionCategory[] {
   return categories.map((c) => {
-    if (c.key === "core" && preview.newCoreEntries.length > 0) {
-      return { ...c, entries: [...c.entries, ...preview.newCoreEntries] };
+    if (c.key === "core") {
+      let entries = c.entries;
+      if (preview.coreCreditFills.length > 0) {
+        entries = entries.map((e) => {
+          const fill = preview.coreCreditFills.find((f) => f.name === e.name.trim());
+          return fill ? { ...e, credits: fill.credits } : e;
+        });
+      }
+      if (preview.newCoreEntries.length > 0) entries = [...entries, ...preview.newCoreEntries];
+      return entries === c.entries ? c : { ...c, entries };
     }
-    if (c.key === "elective" && preview.newElectiveEntries.length > 0) {
-      return { ...c, entries: [...c.entries, ...preview.newElectiveEntries] };
+    if (c.key === "elective") {
+      let entries = c.entries;
+      if (preview.electiveCreditFills.length > 0) {
+        entries = entries.map((e) => {
+          const fill = preview.electiveCreditFills.find((f) => f.name === e.name.trim());
+          return fill ? { ...e, credits: fill.credits } : e;
+        });
+      }
+      if (preview.newElectiveEntries.length > 0) entries = [...entries, ...preview.newElectiveEntries];
+      return entries === c.entries ? c : { ...c, entries };
     }
     if (c.key === "core_curriculum" && preview.mandatoryUpdates.length > 0) {
       return {

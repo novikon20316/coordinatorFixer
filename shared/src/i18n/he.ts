@@ -239,6 +239,7 @@ export const he = {
     studentNotFound: "לא נמצא תלמיד/ה עם ת.ז {idNumber} - יש להוסיף אותו/ה תחילה",
     coreCount: "קורסי ליבה חדשים: {count}",
     electiveCount: "קורסי בחירה חדשים: {count}",
+    creditFillCount: 'השלמות נ"ז לקורסים קיימים: {count}',
     mandatoryCount: "עדכוני מקצועות חובה: {count}",
     noChanges: "לא נמצאו שינויים חדשים לייבוא - ייתכן שהקובץ כבר יובא",
     success: "המאזן יובא בהצלחה",
