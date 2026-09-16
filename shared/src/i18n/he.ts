@@ -349,7 +349,6 @@ export const he = {
     noData: "אין נתונים להצגה",
     error: "אירעה שגיאה",
     comingSoon: "בקרוב",
-    back: "חזרה",
   },
 };
 
