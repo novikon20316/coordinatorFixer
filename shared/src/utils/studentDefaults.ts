@@ -11,6 +11,27 @@ import { activeYearOfStudy, CURRENT_HEBREW_YEAR, HebrewYear, yearOfStudy } from 
 import { he } from "../i18n/he";
 import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord } from "../types/student";
 
+/** Canonical display label for each fixed category key - the source of
+ *  truth for what a category is called today. A category's own `label`
+ *  field is only a snapshot taken when it was first built (see
+ *  buildDefaultCourseCategories below), so a student created before a label
+ *  was renamed keeps showing the old text forever unless callers look it up
+ *  here instead - see courseCategoryLabel. */
+const CATEGORY_LABELS: Record<string, string> = {
+  core_curriculum: "מקצועות חובה של המחלקה",
+  core: "קורסי ליבה",
+  elective: "קורסי בחירה",
+};
+
+/** The label to display for a category - always the current canonical name
+ *  for a known key (core_curriculum/core/elective), ignoring whatever's
+ *  stored on the category itself so a renamed label applies retroactively
+ *  to every student, old and new alike. Falls back to the stored label for
+ *  any other (currently nonexistent) key. */
+export function courseCategoryLabel(category: Pick<CourseCompletionCategory, "key" | "label">): string {
+  return CATEGORY_LABELS[category.key] ?? category.label;
+}
+
 /** Builds a fresh course-completion checklist for a newly created student.
  *  Only Data Science has a known catalog today (see dataScienceCurriculum.ts)
  *  - other faculties get no categories, same as before this feature existed.
@@ -22,21 +43,21 @@ export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletion
   return [
     {
       key: "core_curriculum",
-      label: "מקצועות חובה של המחלקה",
+      label: CATEGORY_LABELS.core_curriculum,
       fixedCatalog: true,
       requiredCount: DATA_SCIENCE_CORE_CURRICULUM_COURSES.length,
       entries: DATA_SCIENCE_CORE_CURRICULUM_COURSES.map((name) => ({ name, passed: false })),
     },
     {
       key: "core",
-      label: "קורסי ליבה",
+      label: CATEGORY_LABELS.core,
       fixedCatalog: false,
       requiredCount: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.core.requiredCount,
       entries: [],
     },
     {
       key: "elective",
-      label: "קורסי בחירה",
+      label: CATEGORY_LABELS.elective,
       fixedCatalog: false,
       requiredCount: DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS.elective.requiredCount,
       entries: [],

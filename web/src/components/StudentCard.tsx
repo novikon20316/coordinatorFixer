@@ -6,6 +6,7 @@ import {
   buildDefaultMilestones,
   CourseCategoryBalance,
   courseCategoryBalance,
+  courseCategoryLabel,
   CourseCompletionCategory,
   CourseCompletionEntry,
   Faculty,
@@ -237,7 +238,7 @@ export function StudentCard({
                     return (
                       <li key={c.key}>
                         {he.studentCard.missingCourseCategory
-                          .replace("{label}", c.label)
+                          .replace("{label}", courseCategoryLabel(c))
                           .replace("{remaining}", String(c.requiredCount - passedCount))}
                       </li>
                     );
@@ -394,7 +395,7 @@ function CourseCategorySection({
   return (
     <section className="rounded-lg border border-gray-100 p-3">
       <h4 className="mb-2 flex items-center justify-between text-xs font-semibold text-gray-700">
-        <span>{category.label}</span>
+        <span>{courseCategoryLabel(category)}</span>
         <span className="text-gray-500">{requirement}</span>
       </h4>
       <div className="flex flex-col gap-1.5">
