@@ -85,7 +85,8 @@ export function AcademicBalanceImportModal({
       preview.newElectiveEntries.length +
       preview.coreCreditFills.length +
       preview.electiveCreditFills.length +
-      preview.mandatoryUpdates.length
+      preview.mandatoryUpdates.length +
+      preview.newMandatoryEntries.length
     : 0;
 
   return (
@@ -129,7 +130,10 @@ export function AcademicBalanceImportModal({
               )}
             </p>
             <p className="text-xs text-gray-600">
-              {he.academicBalanceImport.mandatoryCount.replace("{count}", String(preview.mandatoryUpdates.length))}
+              {he.academicBalanceImport.mandatoryCount.replace(
+                "{count}",
+                String(preview.mandatoryUpdates.length + preview.newMandatoryEntries.length)
+              )}
             </p>
             {totalChanges === 0 && <p className="text-xs text-amber-700">{he.academicBalanceImport.noChanges}</p>}
           </div>

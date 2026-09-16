@@ -410,7 +410,7 @@ function CourseCategorySection({
               value={entry.name}
               onChange={(e) => updateEntry(i, { name: e.target.value })}
               placeholder={he.studentCard.courseName}
-              title={category.fixedCatalog ? he.studentCard.oldCurriculumNameHint : undefined}
+              title={category.fixedCatalog && i < category.requiredCount ? he.studentCard.oldCurriculumNameHint : undefined}
               className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm"
             />
             <input
@@ -435,7 +435,7 @@ function CourseCategorySection({
               placeholder={he.studentCard.credits}
               className="w-14 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
             />
-            {!category.fixedCatalog && (
+            {(!category.fixedCatalog || i >= category.requiredCount) && (
               <button onClick={() => removeRow(i)} className="text-xs text-red-600 hover:underline">
                 {he.studentCard.removeCourse}
               </button>
@@ -443,11 +443,9 @@ function CourseCategorySection({
           </div>
         ))}
       </div>
-      {!category.fixedCatalog && (
-        <button onClick={addRow} className="mt-2 text-xs font-medium text-blue-700 hover:underline">
-          + {he.studentCard.addCourse}
-        </button>
-      )}
+      <button onClick={addRow} className="mt-2 text-xs font-medium text-blue-700 hover:underline">
+        + {he.studentCard.addCourse}
+      </button>
       <CourseCategoryBalanceRow balance={courseCategoryBalance(category, requiredCredits)} />
     </section>
   );

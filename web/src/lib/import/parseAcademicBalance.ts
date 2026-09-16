@@ -215,6 +215,12 @@ export interface AcademicBalanceImportPreview {
   fullName?: string;
   newCoreEntries: CourseCompletionEntry[];
   newElectiveEntries: CourseCompletionEntry[];
+  /** מקצועות חובה rows that don't match any of the fixed catalog's known
+   *  courses (e.g. סמינר מחקר) - the department's own מקצועות חובה listing
+   *  isn't necessarily limited to the 7 courses in DATA_SCIENCE_CORE_
+   *  CURRICULUM_COURSES (see canonicalCoreCourseName), so these are added as
+   *  extra entries on that category rather than silently dropped. */
+  newMandatoryEntries: CourseCompletionEntry[];
   /** נ"ז syncs for a core/elective entry that already exists (by name) but
    *  whose credits don't match the PDF - e.g. a coordinator typed the course
    *  name by hand with no נ"ז, a semester-grade import filled its grade but
@@ -231,6 +237,12 @@ export interface AcademicBalanceImportPreview {
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
   return { name: row.name, credits: row.credits, grade: row.grade, passed: row.grade !== undefined };
+}
+
+/** Like toEntry, but sources נ"ז from נדרש - see the module comment on why
+ *  מקצועות חובה rows use that column instead of נלמד/נרשם. */
+function toMandatoryEntry(row: ParsedCourseRow): CourseCompletionEntry {
+  return { name: row.name, credits: row.required, grade: row.grade, passed: row.grade !== undefined };
 }
 
 /** Splits a domain's parsed rows into brand-new entries (no existing entry
@@ -291,11 +303,22 @@ export function buildAcademicBalancePreview(
   const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], result.electiveRows);
 
   const mandatoryUpdates: { name: string; grade?: number; credits?: number }[] = [];
+  const newMandatoryEntries: CourseCompletionEntry[] = [];
   if (mandatoryCategory) {
+    const existingNames = new Set(mandatoryCategory.entries.map((e) => e.name.trim()));
+    const seenNew = new Set<string>();
     for (const row of result.mandatoryRows) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
       const entry = mandatoryCategory.entries.find((e) => e.name === canonicalName);
-      if (!entry) continue;
+      if (!entry) {
+        // Not one of the known catalog courses (e.g. סמינר מחקר) - add it as
+        // an extra entry instead of dropping it (see newMandatoryEntries).
+        const key = row.name.trim();
+        if (!key || existingNames.has(key) || seenNew.has(key)) continue;
+        seenNew.add(key);
+        newMandatoryEntries.push(toMandatoryEntry(row));
+        continue;
+      }
       const gradeFill = entry.grade === undefined ? row.grade : undefined;
       // נדרש, not נלמד - a course's standard נ"ז weight, present whether or
       // not the student has taken it, and correct even when נלמד exceeds it
@@ -313,6 +336,7 @@ export function buildAcademicBalancePreview(
     fullName: result.fullName,
     newCoreEntries: coreSplit.newEntries,
     newElectiveEntries: electiveSplit.newEntries,
+    newMandatoryEntries,
     coreCreditFills: coreSplit.creditFills,
     electiveCreditFills: electiveSplit.creditFills,
     mandatoryUpdates,
@@ -349,10 +373,10 @@ export function applyAcademicBalanceToCategories(
       if (preview.newElectiveEntries.length > 0) entries = [...entries, ...preview.newElectiveEntries];
       return entries === c.entries ? c : { ...c, entries };
     }
-    if (c.key === "core_curriculum" && preview.mandatoryUpdates.length > 0) {
-      return {
-        ...c,
-        entries: c.entries.map((e) => {
+    if (c.key === "core_curriculum") {
+      let entries = c.entries;
+      if (preview.mandatoryUpdates.length > 0) {
+        entries = entries.map((e) => {
           const update = preview.mandatoryUpdates.find((u) => u.name === e.name);
           if (!update) return e;
           return {
@@ -361,8 +385,10 @@ export function applyAcademicBalanceToCategories(
             credits: update.credits ?? e.credits,
             passed: update.grade !== undefined || e.passed,
           };
-        }),
-      };
+        });
+      }
+      if (preview.newMandatoryEntries.length > 0) entries = [...entries, ...preview.newMandatoryEntries];
+      return entries === c.entries ? c : { ...c, entries };
     }
     return c;
   });
