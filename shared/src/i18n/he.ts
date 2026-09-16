@@ -88,6 +88,7 @@ export const he = {
     importStudents: "ייבוא תלמידים",
     importGrades: "ייבוא ציונים",
     importRoster: "ייבוא רשימת מחזור",
+    importAcademicBalance: "ייבוא מאזן חובות",
     studentsListTitle: "רשימת סטודנטים",
     searchPlaceholder: "חיפוש לפי שם או ת.ז...",
     cohortFilterAll: "כל המחזורים",
@@ -227,6 +228,20 @@ export const he = {
     confirming: "מייבא...",
     cancel: "ביטול",
     resultSummary: "יובאו/עודכנו {count} רשומות",
+  },
+
+  academicBalanceImport: {
+    title: "ייבוא מאזן חובות",
+    description:
+      "העלאת קובץ PDF של מאזן חובות אקדמיים מהמכללה - הקורסים תחת \"ליבה\" ו\"קורסי בחירה\" יתווספו לתלמיד/ה המתאים/ה, וקורסי \"מדעי הנתונים\" יעדכנו את מקצועות החובה של המחלקה.",
+    uploadButton: "בחר קובץ PDF",
+    noIdFound: "לא נמצאה תעודת זהות בקובץ",
+    studentNotFound: "לא נמצא תלמיד/ה עם ת.ז {idNumber} - יש להוסיף אותו/ה תחילה",
+    coreCount: "קורסי ליבה חדשים: {count}",
+    electiveCount: "קורסי בחירה חדשים: {count}",
+    mandatoryCount: "עדכוני מקצועות חובה: {count}",
+    noChanges: "לא נמצאו שינויים חדשים לייבוא - ייתכן שהקובץ כבר יובא",
+    success: "המאזן יובא בהצלחה",
   },
 
   reports: {

@@ -17,6 +17,7 @@ import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
 import { AddStudentBar } from "../../../components/AddStudentBar";
 import { StudentsImportModal } from "../../../components/StudentsImportModal";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
+import { AcademicBalanceImportModal } from "../../../components/AcademicBalanceImportModal";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { subscribeCandidates } from "../../../data/candidatesRepository";
 import { parseSemesterGrades } from "../../../lib/import/parseSemesterGrades";
@@ -69,6 +70,7 @@ export default function DashboardPage() {
   const [showImport, setShowImport] = useState(false);
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
+  const [showBalanceImport, setShowBalanceImport] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeStudents(faculty, setStudents);
@@ -136,6 +138,12 @@ export default function DashboardPage() {
           >
             {he.dashboard.importStudents}
           </button>
+          <button
+            onClick={() => setShowBalanceImport(true)}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {he.dashboard.importAcademicBalance}
+          </button>
         </div>
       </div>
 
@@ -194,6 +202,14 @@ export default function DashboardPage() {
           yearLabel={he.studentForm.cohortYear}
           parseSheet={(rows, year) => parseRoster(rows, { asOfYear: year, faculty, existing: students })}
           onClose={() => setShowRosterImport(false)}
+          onDone={() => {}}
+        />
+      )}
+
+      {showBalanceImport && (
+        <AcademicBalanceImportModal
+          students={students}
+          onClose={() => setShowBalanceImport(false)}
           onDone={() => {}}
         />
       )}
