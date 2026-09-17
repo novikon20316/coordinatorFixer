@@ -9,7 +9,6 @@ import {
   he,
   isGraduatedStatus,
   Student,
-  StudentStatus,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
@@ -26,37 +25,34 @@ import { useFaculty } from "../../../context/FacultyContext";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
-// on. A student counts as graduated by status (isGraduatedStatus, i.e. one
-// of the two "מוסמך/כת" statuses set by hand), OR - only once a specific
-// cycle is selected in the cohort filter - by having simply run past their
-// one-year program relative to that cycle while still in good standing
-// (status ACTIVE). A student whose duties aren't done (on leave, conditional,
-// not-regular, canceled, etc.) is left under their track tab instead of
-// being swept into graduates just because a later cycle is being viewed.
-// This is a display-only inference for the selected cycle - it never writes
-// back to the student's stored status.
+// on. A student counts as graduated only by status (isGraduatedStatus, i.e.
+// one of the two "מוסמך/כת" statuses set by hand) - never inferred merely
+// from having an earlier cohort year while still ACTIVE. A certified
+// student is excluded from the track tabs unconditionally, but only shows
+// under the graduates tab once the cohort filter has caught up to them:
+// either "כל המחזורים" (no filter), or the Hebrew year right after their
+// own cohortYear - not their own cohort year, and not any later one either.
 const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
 
-function isGraduate(student: Student, referenceCycle: string): boolean {
-  if (isGraduatedStatus(student.status)) return true;
-  if (!referenceCycle || student.track !== StudentTrack.REGULAR || student.status !== StudentStatus.ACTIVE) {
-    return false;
-  }
+function isGraduateVisible(student: Student, referenceCycle: string): boolean {
+  if (!isGraduatedStatus(student.status)) return false;
+  if (!referenceCycle) return true;
   if (!student.cohortYear) return false;
-  return HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) >
-    HEBREW_YEAR_VALUES.indexOf(student.cohortYear);
+  return (
+    HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) ===
+    HEBREW_YEAR_VALUES.indexOf(student.cohortYear) + 1
+  );
 }
 
-// Track tabs narrow to students who started exactly in the selected cycle;
-// the graduates tab already reflects the selected cycle via isGraduate
-// above, so narrowing it again by exact cohortYear would hide the very
-// cohorts that cycle just promoted into it.
+// Track tabs narrow to students who started exactly in the selected cycle
+// and were never certified; the graduates tab has its own cycle rule above,
+// so it isn't narrowed by exact cohortYear here.
 function studentsForView(students: Student[], v: DashboardView, cohortFilter: string): Student[] {
   const byView =
     v === GRADUATED_VIEW
-      ? students.filter((s) => isGraduate(s, cohortFilter))
-      : students.filter((s) => s.track === v && !isGraduate(s, cohortFilter));
+      ? students.filter((s) => isGraduateVisible(s, cohortFilter))
+      : students.filter((s) => s.track === v && !isGraduatedStatus(s.status));
   return cohortFilter && v !== GRADUATED_VIEW ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
 }
 
