@@ -258,6 +258,7 @@ export const he = {
     electiveCount: "קורסי בחירה חדשים: {count}",
     creditFillCount: 'השלמות נ"ז לקורסים קיימים: {count}',
     mandatoryCount: "עדכוני מקצועות חובה: {count}",
+    movedToMandatoryCount: "קורסים שהועברו למקצועות חובה (הוסרו מליבה/בחירה): {count}",
     noChanges: "לא נמצאו שינויים חדשים לייבוא - ייתכן שהקובץ כבר יובא",
     success: "המאזן יובא בהצלחה",
   },

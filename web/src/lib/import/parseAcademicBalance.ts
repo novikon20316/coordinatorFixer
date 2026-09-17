@@ -35,11 +35,12 @@ import { PdfPage, PdfTextItem } from "./pdfText";
  * - A catalog course can also show up under ליבה/קורסי בחירה instead of
  *   מדעי הנתונים - HIT credits it toward whichever requirement the student
  *   used it for, not necessarily the department's own מקצועות חובה bucket.
- *   Either way it still marks that catalog slot fulfilled (see
- *   buildAcademicBalancePreview), alongside its own normal ליבה/בחירה
- *   entry rather than instead of it, since the coordinator wants to know
- *   "has this student passed X" regardless of which domain HIT counted it
- *   under.
+ *   Either way it counts toward that מקצועות חובה slot (see
+ *   buildAcademicBalancePreview), since the coordinator wants to know "has
+ *   this student passed X" regardless of which domain HIT counted it
+ *   under - and only there, not also under ליבה/בחירה, so the same course
+ *   doesn't visibly appear twice on the card (see coreRemovals/
+ *   electiveRemovals).
  */
 
 interface ParsedCourseRow {
@@ -252,6 +253,13 @@ export interface AcademicBalanceImportPreview {
    *  it was previously only ever a display-time computation - see
    *  syncCourseCategoriesFromHistory - never actually persisted). */
   mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[];
+  /** Names of existing core/elective entries to drop because this import
+   *  recognized them as one of the 7 מקצועות חובה catalog courses (see
+   *  mandatoryUpdates) - a course counts toward that requirement instead of
+   *  also sitting under ליבה/בחירה, not in addition to it, so it shouldn't
+   *  visibly appear twice on the card. */
+  coreRemovals: string[];
+  electiveRemovals: string[];
 }
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
@@ -320,8 +328,29 @@ export function buildAcademicBalancePreview(
   const electiveCategory = categories.find((c) => c.key === "elective");
   const mandatoryCategory = categories.find((c) => c.key === "core_curriculum");
 
-  const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], result.coreRows);
-  const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], result.electiveRows);
+  // A department catalog course can be credited toward ליבה/קורסי בחירה
+  // instead of מדעי הנתונים for a given student (HIT's own report puts it
+  // under whichever domain counted it) - still worth marking the מקצועות
+  // חובה slot fulfilled for the coordinator's own tracking of "has this
+  // student passed X". It counts toward that requirement instead of also
+  // sitting under ליבה/בחירה (see coreRemovals/electiveRemovals below), not
+  // in addition to it, so it's excluded from the normal ליבה/בחירה
+  // processing here.
+  const isCatalogCourse = (row: ParsedCourseRow) =>
+    DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(canonicalCoreCourseName(row.name.trim()));
+  const catalogRowsFromCore = result.coreRows.filter(isCatalogCourse);
+  const catalogRowsFromElective = result.electiveRows.filter(isCatalogCourse);
+  const nonCatalogCoreRows = result.coreRows.filter((row) => !isCatalogCourse(row));
+  const nonCatalogElectiveRows = result.electiveRows.filter((row) => !isCatalogCourse(row));
+
+  const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], nonCatalogCoreRows);
+  const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], nonCatalogElectiveRows);
+  const catalogNamesInCore = new Set(catalogRowsFromCore.map((r) => r.name.trim()));
+  const catalogNamesInElective = new Set(catalogRowsFromElective.map((r) => r.name.trim()));
+  const coreRemovals = (coreCategory?.entries ?? []).map((e) => e.name.trim()).filter((n) => catalogNamesInCore.has(n));
+  const electiveRemovals = (electiveCategory?.entries ?? [])
+    .map((e) => e.name.trim())
+    .filter((n) => catalogNamesInElective.has(n));
 
   const mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[] = [];
   const newMandatoryEntries: CourseCompletionEntry[] = [];
@@ -329,20 +358,12 @@ export function buildAcademicBalancePreview(
     const existingNames = new Set(mandatoryCategory.entries.map((e) => e.name.trim()));
     const seenNew = new Set<string>();
     const seenCanonical = new Set<string>();
-    // A department catalog course can be credited toward ליבה/קורסי בחירה
-    // instead of מדעי הנתונים for a given student (HIT's own report puts it
-    // under whichever domain counted it) - still worth marking the
-    // מקצועות חובה slot fulfilled for the coordinator's own tracking of
-    // "has this student passed X", alongside its normal ליבה/בחירה entry,
-    // not instead of it. Only rows that actually match a known catalog
-    // course make it into this combined list - a non-catalog ליבה/בחירה
-    // course (e.g. "כריית טקסטים") never reaches here, so it can't spawn a
-    // bogus מקצועות חובה entry the way a genuine מדעי הנתונים extra (e.g.
-    // סמינריון) legitimately can (see newMandatoryEntries below).
-    const catalogRowsFromOtherDomains = [...result.coreRows, ...result.electiveRows].filter((row) =>
-      DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(canonicalCoreCourseName(row.name.trim()))
-    );
-    for (const row of [...result.mandatoryRows, ...catalogRowsFromOtherDomains]) {
+    // Only rows that actually match a known catalog course make it into
+    // this combined list - a non-catalog ליבה/בחירה course (e.g. "כריית
+    // טקסטים") never reaches here, so it can't spawn a bogus מקצועות חובה
+    // entry the way a genuine מדעי הנתונים extra (e.g. סמינריון)
+    // legitimately can (see newMandatoryEntries below).
+    for (const row of [...result.mandatoryRows, ...catalogRowsFromCore, ...catalogRowsFromElective]) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
       if (seenCanonical.has(canonicalName)) continue;
       // Canonicalize the STORED entry's name too, not just the PDF row's -
@@ -385,6 +406,8 @@ export function buildAcademicBalancePreview(
     coreCreditFills: coreSplit.creditFills,
     electiveCreditFills: electiveSplit.creditFills,
     mandatoryUpdates,
+    coreRemovals,
+    electiveRemovals,
   };
 }
 
@@ -398,6 +421,9 @@ export function applyAcademicBalanceToCategories(
   return categories.map((c) => {
     if (c.key === "core") {
       let entries = c.entries;
+      if (preview.coreRemovals.length > 0) {
+        entries = entries.filter((e) => !preview.coreRemovals.includes(e.name.trim()));
+      }
       if (preview.coreCreditFills.length > 0) {
         entries = entries.map((e) => {
           const fill = preview.coreCreditFills.find((f) => f.name === e.name.trim());
@@ -409,6 +435,9 @@ export function applyAcademicBalanceToCategories(
     }
     if (c.key === "elective") {
       let entries = c.entries;
+      if (preview.electiveRemovals.length > 0) {
+        entries = entries.filter((e) => !preview.electiveRemovals.includes(e.name.trim()));
+      }
       if (preview.electiveCreditFills.length > 0) {
         entries = entries.map((e) => {
           const fill = preview.electiveCreditFills.find((f) => f.name === e.name.trim());
