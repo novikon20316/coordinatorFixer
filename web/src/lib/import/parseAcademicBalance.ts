@@ -32,6 +32,14 @@ import { PdfPage, PdfTextItem } from "./pdfText";
  *   of the course (flagged with "!" in the report, since the excess never
  *   counts toward the total), and נדרש is what's meaningful either way,
  *   whether or not the course has a grade yet.
+ * - A catalog course can also show up under ליבה/קורסי בחירה instead of
+ *   מדעי הנתונים - HIT credits it toward whichever requirement the student
+ *   used it for, not necessarily the department's own מקצועות חובה bucket.
+ *   Either way it still marks that catalog slot fulfilled (see
+ *   buildAcademicBalancePreview), alongside its own normal ליבה/בחירה
+ *   entry rather than instead of it, since the coordinator wants to know
+ *   "has this student passed X" regardless of which domain HIT counted it
+ *   under.
  */
 
 interface ParsedCourseRow {
@@ -250,10 +258,12 @@ function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
   return { name: row.name, credits: row.credits, grade: row.grade, passed: row.grade !== undefined };
 }
 
-/** Like toEntry, but sources נ"ז from נדרש - see the module comment on why
- *  מקצועות חובה rows use that column instead of נלמד/נרשם. */
+/** Like toEntry, but prefers נדרש over נלמד/נרשם when both are present - see
+ *  the module comment on why (a מדעי הנתונים row always has נדרש; a ליבה/
+ *  בחירה row credited toward the catalog instead never does, so this falls
+ *  back to its own credits column). */
 function toMandatoryEntry(row: ParsedCourseRow): CourseCompletionEntry {
-  return { name: row.name, credits: row.required, grade: row.grade, passed: row.grade !== undefined };
+  return { name: row.name, credits: row.required ?? row.credits, grade: row.grade, passed: row.grade !== undefined };
 }
 
 /** Splits a domain's parsed rows into brand-new entries (no existing entry
@@ -318,8 +328,23 @@ export function buildAcademicBalancePreview(
   if (mandatoryCategory) {
     const existingNames = new Set(mandatoryCategory.entries.map((e) => e.name.trim()));
     const seenNew = new Set<string>();
-    for (const row of result.mandatoryRows) {
+    const seenCanonical = new Set<string>();
+    // A department catalog course can be credited toward ליבה/קורסי בחירה
+    // instead of מדעי הנתונים for a given student (HIT's own report puts it
+    // under whichever domain counted it) - still worth marking the
+    // מקצועות חובה slot fulfilled for the coordinator's own tracking of
+    // "has this student passed X", alongside its normal ליבה/בחירה entry,
+    // not instead of it. Only rows that actually match a known catalog
+    // course make it into this combined list - a non-catalog ליבה/בחירה
+    // course (e.g. "כריית טקסטים") never reaches here, so it can't spawn a
+    // bogus מקצועות חובה entry the way a genuine מדעי הנתונים extra (e.g.
+    // סמינריון) legitimately can (see newMandatoryEntries below).
+    const catalogRowsFromOtherDomains = [...result.coreRows, ...result.electiveRows].filter((row) =>
+      DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(canonicalCoreCourseName(row.name.trim()))
+    );
+    for (const row of [...result.mandatoryRows, ...catalogRowsFromOtherDomains]) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
+      if (seenCanonical.has(canonicalName)) continue;
       // Canonicalize the STORED entry's name too, not just the PDF row's -
       // an older curriculum's own English name (or another alternate
       // spelling in DATA_SCIENCE_CORE_CURRICULUM_ALIASES) would otherwise
@@ -335,12 +360,16 @@ export function buildAcademicBalancePreview(
         newMandatoryEntries.push(toMandatoryEntry(row));
         continue;
       }
+      seenCanonical.add(canonicalName);
       const gradeFill = entry.grade === undefined ? row.grade : undefined;
       // נדרש, not נלמד - a course's standard נ"ז weight, present whether or
       // not the student has taken it, and correct even when נלמד exceeds it
-      // (see the module comment on the "!" over-credit case). Synced on
-      // every import (not just when missing) so a re-import can correct it.
-      const creditsFill = row.required !== undefined && row.required !== entry.credits ? row.required : undefined;
+      // (see the module comment on the "!" over-credit case); falls back to
+      // the row's own credits for a ליבה/בחירה row, which never has נדרש.
+      // Synced on every import (not just when missing) so a re-import can
+      // correct it.
+      const rowCredits = row.required ?? row.credits;
+      const creditsFill = rowCredits !== undefined && rowCredits !== entry.credits ? rowCredits : undefined;
       if (gradeFill !== undefined || creditsFill !== undefined || entry.name !== canonicalName) {
         mandatoryUpdates.push({ originalName: entry.name, name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
