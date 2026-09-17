@@ -1,5 +1,14 @@
-import { HebrewYear, Student } from "@admin-coordinator/shared";
+import { HEBREW_YEAR_VALUES, HebrewYear, Student } from "@admin-coordinator/shared";
 import { apiFetch } from "./apiClient";
+
+// These aren't real courses - they're sheet columns ("did they graduate?",
+// "scholarship amount") that older imports mistakenly recorded into
+// academicHistory as if they were course grades (see
+// lib/import/parseSemesterGrades.ts's IGNORED_COLUMNS, which now keeps new
+// imports from doing this). Filtered out here too so already-imported
+// records already carrying them don't need a data migration to disappear
+// from the History tab.
+const NOT_REAL_COURSES = new Set(["בוגר כן/לא", "מלגה"]);
 
 /** One student's grade within a CourseHistoryGroup below. */
 export interface CourseHistoryEntry {
@@ -33,6 +42,7 @@ export function buildCourseHistory(students: Student[]): CourseHistoryGroup[] {
   for (const student of students) {
     for (const record of student.academicHistory ?? []) {
       for (const course of record.courses) {
+        if (NOT_REAL_COURSES.has(course.name)) continue;
         const key = `${course.name}|${record.hebrewYear}|${record.semester}`;
         let group = groups.get(key);
         if (!group) {
@@ -54,6 +64,41 @@ export function buildCourseHistory(students: Student[]): CourseHistoryGroup[] {
   }
 
   return Array.from(groups.values()).sort((a, b) => a.courseName.localeCompare(b.courseName, "he"));
+}
+
+/** One course name, folding together every מחזור/semester it was actually
+ *  taught in (its CourseHistoryGroup "classes") - the same course shows once
+ *  in the History tab regardless of how many times it recurs, and a
+ *  coordinator drills into a specific offering to see who took it. */
+export interface CourseHistoryCourse {
+  courseName: string;
+  offerings: CourseHistoryGroup[];
+  studentCount: number;
+}
+
+const SEMESTER_ORDER: Record<"A" | "B", number> = { A: 0, B: 1 };
+
+/** Folds the flat (course, cohort year, semester) class list from
+ *  buildCourseHistory into one entry per distinct course name, most recent
+ *  offering first. */
+export function groupCoursesByName(groups: CourseHistoryGroup[]): CourseHistoryCourse[] {
+  const byName = new Map<string, CourseHistoryGroup[]>();
+  for (const group of groups) {
+    const offerings = byName.get(group.courseName);
+    if (offerings) offerings.push(group);
+    else byName.set(group.courseName, [group]);
+  }
+
+  return Array.from(byName.entries())
+    .map(([courseName, offerings]) => ({
+      courseName,
+      offerings: [...offerings].sort((a, b) => {
+        const yearDiff = HEBREW_YEAR_VALUES.indexOf(b.hebrewYear) - HEBREW_YEAR_VALUES.indexOf(a.hebrewYear);
+        return yearDiff !== 0 ? yearDiff : SEMESTER_ORDER[b.semester] - SEMESTER_ORDER[a.semester];
+      }),
+      studentCount: offerings.reduce((sum, o) => sum + o.entries.length, 0),
+    }))
+    .sort((a, b) => a.courseName.localeCompare(b.courseName, "he"));
 }
 
 /**

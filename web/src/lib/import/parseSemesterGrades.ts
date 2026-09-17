@@ -40,6 +40,10 @@ const PRIOR_DEGREE_COLUMNS: Record<string, "previousCollege" | "degreeField" | "
   "ממוצע התואר": "gpa",
   "נימוק לקבלה": "background",
 };
+// Read separately below (graduatedText/scholarship) onto Student's own
+// fields - excluded here so they don't also get recorded as fake courses
+// named "בוגר כן/לא" or "מלגה" in academicHistory/the History tab.
+const IGNORED_COLUMNS = new Set(["בוגר כן/לא", "מלגה"]);
 const AVERAGE_COLUMN_PATTERN = /מ?מוצע סמסטר/;
 
 function yearBlockToYearOfStudy(label: string): 1 | 2 | undefined {
@@ -66,6 +70,7 @@ function planColumns(headerRow: SheetRows[number], yearBlockRow: string[], semes
   for (let col = 0; col < width; col++) {
     const headerText = normalizeHeader(headerRow[col]);
     if (!headerText) continue;
+    if (IGNORED_COLUMNS.has(headerText)) continue;
     if (headerText in SPECIAL_COLUMNS) {
       plan.specialCols.push({ col, target: SPECIAL_COLUMNS[headerText] });
       continue;

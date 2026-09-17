@@ -4,13 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import { he, Student } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
-import { buildCourseHistory, CourseHistoryGroup, updateGroupLecturer } from "../../../lib/history";
+import {
+  buildCourseHistory,
+  CourseHistoryCourse,
+  CourseHistoryGroup,
+  groupCoursesByName,
+  updateGroupLecturer,
+} from "../../../lib/history";
 import { CourseDetailModal } from "../../../components/CourseDetailModal";
+import { CourseOfferingsModal } from "../../../components/CourseOfferingsModal";
 
 export default function HistoryPage() {
   const { faculty } = useFaculty();
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState<CourseHistoryCourse | null>(null);
   const [selected, setSelected] = useState<CourseHistoryGroup | null>(null);
 
   useEffect(() => {
@@ -20,7 +28,7 @@ export default function HistoryPage() {
 
   const groups = useMemo(() => buildCourseHistory(students), [students]);
 
-  const filtered = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return groups;
     return groups.filter(
@@ -28,8 +36,9 @@ export default function HistoryPage() {
     );
   }, [groups, search]);
 
+  const courses = useMemo(() => groupCoursesByName(filteredGroups), [filteredGroups]);
+
   async function handleLecturerChange(group: CourseHistoryGroup, lecturer: string) {
-    setSelected((prev) => (prev && prev.key === group.key ? { ...prev, lecturer } : prev));
     await updateGroupLecturer(students, group, lecturer);
   }
 
@@ -52,34 +61,31 @@ export default function HistoryPage() {
           <thead className="bg-gray-50 text-xs text-gray-500">
             <tr>
               <th className="px-4 py-2 text-right font-medium">{he.history.courseName}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.history.cohortYear}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.history.semester}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.history.lecturer}</th>
+              <th className="px-4 py-2 text-right font-medium">{he.history.offeringsCount}</th>
               <th className="px-4 py-2 text-right font-medium">{he.history.studentsCount}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.map((g) => (
-              <tr key={g.key} onClick={() => setSelected(g)} className="cursor-pointer hover:bg-gray-50">
-                <td className="px-4 py-2 font-medium text-gray-900">{g.courseName}</td>
-                <td className="px-4 py-2 text-gray-600">{g.hebrewYear}</td>
-                <td className="px-4 py-2 text-gray-600">{he.studentCard.semesterLabel[g.semester]}</td>
-                <td className="px-4 py-2 text-gray-600" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    defaultValue={g.lecturer ?? ""}
-                    onBlur={(e) => handleLecturerChange(g, e.target.value)}
-                    placeholder={he.history.lecturerPlaceholder}
-                    className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm"
-                  />
-                </td>
-                <td className="px-4 py-2 text-gray-600">{g.entries.length}</td>
+            {courses.map((c) => (
+              <tr key={c.courseName} onClick={() => setSelectedCourse(c)} className="cursor-pointer hover:bg-gray-50">
+                <td className="px-4 py-2 font-medium text-gray-900">{c.courseName}</td>
+                <td className="px-4 py-2 text-gray-600">{c.offerings.length}</td>
+                <td className="px-4 py-2 text-gray-600">{c.studentCount}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {filtered.length === 0 && <div className="py-16 text-center text-gray-500">{he.history.noHistory}</div>}
+        {courses.length === 0 && <div className="py-16 text-center text-gray-500">{he.history.noHistory}</div>}
       </div>
+
+      {selectedCourse && !selected && (
+        <CourseOfferingsModal
+          course={selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          onSelectOffering={setSelected}
+        />
+      )}
 
       {selected && (
         <CourseDetailModal

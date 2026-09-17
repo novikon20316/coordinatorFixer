@@ -300,14 +300,16 @@ export const he = {
 
   history: {
     title: "היסטוריית קורסים",
-    description: "רשימת כל הקורסים שנלמדו, לפי מחזור וסמסטר - כולל שם המרצה. לחצו על קורס לפרטים נוספים.",
+    description: "רשימת כל הקורסים שנלמדו. לחצו על קורס כדי לראות את המחזורים/סמסטרים שבהם נלמד, ומשם על מחזור לרשימת התלמידים.",
     courseName: "שם הקורס",
     cohortYear: "מחזור",
     semester: "סמסטר",
     lecturer: "מרצה",
     lecturerPlaceholder: "הזן שם מרצה",
     studentsCount: "מס' תלמידים",
+    offeringsCount: "מס' מחזורים",
     noHistory: "לא נמצאה היסטוריית קורסים",
+    courseOfferingsTitle: "מחזורים בהם נלמד הקורס",
     courseDetailTitle: "פרטי קורס",
     studentName: "שם התלמיד/ה",
     grade: "ציון",
