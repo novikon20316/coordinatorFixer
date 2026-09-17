@@ -29,13 +29,15 @@ import { useFaculty } from "../../../context/FacultyContext";
 // one of the two "מוסמך/כת" statuses set by hand) - never inferred merely
 // from having an earlier cohort year while still ACTIVE. A certified
 // student only shows under the graduates tab once the cohort filter has
-// caught up to them: either "כל המחזורים" (no filter), or the Hebrew year
-// right after their own cohortYear - not their own cohort year, and not any
-// later one either. Under their OWN cohort year's filter they instead
-// belong under their track tab regardless of current status - that filter
-// is a snapshot of "who was in this cohort", not a live status check, so a
-// student who has since been certified still shows there. Only the
-// unfiltered "כל המחזורים" view of the track tabs excludes certified
+// caught up to them: either "כל המחזורים" (no filter), or any Hebrew year
+// after their own cohortYear - never their own cohort year itself. Once a
+// cohort's certified students start showing (from the year right after
+// their own onward), they keep accumulating in every later year's filter
+// too, they never drop back out. Under their OWN cohort year's filter they
+// instead belong under their track tab regardless of current status - that
+// filter is a snapshot of "who was in this cohort", not a live status
+// check, so a student who has since been certified still shows there. Only
+// the unfiltered "כל המחזורים" view of the track tabs excludes certified
 // students, since that view means "who's currently active across every
 // cohort".
 const GRADUATED_VIEW = "GRADUATED" as const;
@@ -46,8 +48,8 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!referenceCycle) return true;
   if (!student.cohortYear) return false;
   return (
-    HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) ===
-    HEBREW_YEAR_VALUES.indexOf(student.cohortYear) + 1
+    HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) >
+    HEBREW_YEAR_VALUES.indexOf(student.cohortYear)
   );
 }
 
