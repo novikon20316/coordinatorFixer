@@ -1,14 +1,14 @@
-import { HEBREW_YEAR_VALUES, HebrewYear, Student } from "@admin-coordinator/shared";
+import { GENERIC_ELECTIVE_SLOT_NAMES, HEBREW_YEAR_VALUES, HebrewYear, Student } from "@admin-coordinator/shared";
 import { apiFetch } from "./apiClient";
 
 // These aren't real courses - they're sheet columns ("did they graduate?",
-// "scholarship amount") that older imports mistakenly recorded into
-// academicHistory as if they were course grades (see
-// lib/import/parseSemesterGrades.ts's IGNORED_COLUMNS, which now keeps new
-// imports from doing this). Filtered out here too so already-imported
-// records already carrying them don't need a data migration to disappear
-// from the History tab.
-const NOT_REAL_COURSES = new Set(["בוגר כן/לא", "מלגה"]);
+// "scholarship amount", a ליבה/בחירה slot with no course name yet assigned)
+// that older imports mistakenly recorded into academicHistory as if they
+// were named courses (see lib/import/parseSemesterGrades.ts's
+// IGNORED_COLUMNS, which now keeps new imports from doing this). Filtered
+// out here too so already-imported records carrying them don't need a data
+// migration to disappear from the History tab.
+const NOT_REAL_COURSES = new Set(["בוגר כן/לא", "מלגה", ...GENERIC_ELECTIVE_SLOT_NAMES]);
 
 /** One student's grade within a CourseHistoryGroup below. */
 export interface CourseHistoryEntry {

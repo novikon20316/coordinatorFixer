@@ -3,6 +3,7 @@ import {
   CourseCompletionEntry,
   DATA_SCIENCE_CORE_CURRICULUM_ALIASES,
   DATA_SCIENCE_CORE_CURRICULUM_COURSES,
+  GENERIC_ELECTIVE_SLOT_NAMES,
   Student,
 } from "@admin-coordinator/shared";
 import { PdfPage, PdfTextItem } from "./pdfText";
@@ -165,7 +166,7 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
     const nameItem = row.items.find(
       (i) => i !== codeItem && /[א-ת]/.test(i.text) && i.text.trim().length > 1 && !CODE_PATTERN.test(i.text.trim())
     );
-    if (!nameItem) {
+    if (!nameItem || GENERIC_ELECTIVE_SLOT_NAMES.has(nameItem.text.trim())) {
       lastRow = undefined;
       continue;
     }

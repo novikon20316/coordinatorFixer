@@ -104,6 +104,22 @@ export function isCourseworkComplete(categories: CourseCompletionCategory[] | un
   return categories.every(isCourseCategoryComplete);
 }
 
+/** Generic, unfilled-slot column headers some semester-grade sheets use for
+ *  a ליבה/בחירה elective before the student's actual chosen course is known
+ *  (e.g. "קורס ליבה 1", "קורס בחירה 2") - the slot label, not a real course
+ *  name, so never surfaced as one: excluded here from
+ *  syncCourseCategoriesFromHistory's promotion, and by
+ *  parseSemesterGrades.ts's IGNORED_COLUMNS from ever entering
+ *  academicHistory as a "course" in the first place. */
+export const GENERIC_ELECTIVE_SLOT_NAMES = new Set([
+  "קורס בחירה 1",
+  "קורס בחירה 2",
+  "קורס בחירה 3",
+  "קורס ליבה 1",
+  "קורס ליבה 2",
+  "קורס ליבה 3",
+]);
+
 /**
  * Fills in a student's course-completion checklist from their raw imported
  * academicHistory, without ever overwriting a grade a coordinator already
@@ -124,7 +140,9 @@ export function isCourseworkComplete(categories: CourseCompletionCategory[] | un
  *   box a coordinator deliberately unchecked.
  * - The free-text "core"/"elective" categories get any "קורס ליבה"/"קורס
  *   בחירה" course found in the history appended as a new, passed entry,
- *   skipping names already present so re-running this is idempotent.
+ *   skipping names already present (so re-running this is idempotent) and
+ *   skipping GENERIC_ELECTIVE_SLOT_NAMES (an unfilled slot label, not a real
+ *   course - see its own doc comment).
  */
 export function syncCourseCategoriesFromHistory(
   categories: CourseCompletionCategory[],
@@ -170,6 +188,7 @@ export function syncCourseCategoriesFromHistory(
       const extra: CourseCompletionEntry[] = [];
       for (const c of allCourses) {
         if (!c.name.startsWith(prefix) || typeof c.grade !== "number") continue;
+        if (GENERIC_ELECTIVE_SLOT_NAMES.has(c.name)) continue;
         if (existingNames.has(c.name)) continue;
         existingNames.add(c.name); // also de-dupes repeat course names within the history itself
         extra.push({ name: c.name, grade: c.grade, passed: true });
