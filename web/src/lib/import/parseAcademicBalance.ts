@@ -32,15 +32,6 @@ import { PdfPage, PdfTextItem } from "./pdfText";
  *   of the course (flagged with "!" in the report, since the excess never
  *   counts toward the total), and נדרש is what's meaningful either way,
  *   whether or not the course has a grade yet.
- * - A catalog course can also show up under ליבה/קורסי בחירה instead of
- *   מדעי הנתונים - HIT credits it toward whichever requirement the student
- *   used it for, not necessarily the department's own מקצועות חובה bucket.
- *   Either way it counts toward that מקצועות חובה slot (see
- *   buildAcademicBalancePreview), since the coordinator wants to know "has
- *   this student passed X" regardless of which domain HIT counted it
- *   under - and only there, not also under ליבה/בחירה, so the same course
- *   doesn't visibly appear twice on the card (see coreRemovals/
- *   electiveRemovals).
  */
 
 interface ParsedCourseRow {
@@ -253,25 +244,16 @@ export interface AcademicBalanceImportPreview {
    *  it was previously only ever a display-time computation - see
    *  syncCourseCategoriesFromHistory - never actually persisted). */
   mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[];
-  /** Names of existing core/elective entries to drop because this import
-   *  recognized them as one of the 7 מקצועות חובה catalog courses (see
-   *  mandatoryUpdates) - a course counts toward that requirement instead of
-   *  also sitting under ליבה/בחירה, not in addition to it, so it shouldn't
-   *  visibly appear twice on the card. */
-  coreRemovals: string[];
-  electiveRemovals: string[];
 }
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
   return { name: row.name, credits: row.credits, grade: row.grade, passed: row.grade !== undefined };
 }
 
-/** Like toEntry, but prefers נדרש over נלמד/נרשם when both are present - see
- *  the module comment on why (a מדעי הנתונים row always has נדרש; a ליבה/
- *  בחירה row credited toward the catalog instead never does, so this falls
- *  back to its own credits column). */
+/** Like toEntry, but sources נ"ז from נדרש - see the module comment on why
+ *  מקצועות חובה rows use that column instead of נלמד/נרשם. */
 function toMandatoryEntry(row: ParsedCourseRow): CourseCompletionEntry {
-  return { name: row.name, credits: row.required ?? row.credits, grade: row.grade, passed: row.grade !== undefined };
+  return { name: row.name, credits: row.required, grade: row.grade, passed: row.grade !== undefined };
 }
 
 /** Splits a domain's parsed rows into brand-new entries (no existing entry
@@ -328,44 +310,16 @@ export function buildAcademicBalancePreview(
   const electiveCategory = categories.find((c) => c.key === "elective");
   const mandatoryCategory = categories.find((c) => c.key === "core_curriculum");
 
-  // A department catalog course can be credited toward ליבה/קורסי בחירה
-  // instead of מדעי הנתונים for a given student (HIT's own report puts it
-  // under whichever domain counted it) - still worth marking the מקצועות
-  // חובה slot fulfilled for the coordinator's own tracking of "has this
-  // student passed X". It counts toward that requirement instead of also
-  // sitting under ליבה/בחירה (see coreRemovals/electiveRemovals below), not
-  // in addition to it, so it's excluded from the normal ליבה/בחירה
-  // processing here.
-  const isCatalogCourse = (row: ParsedCourseRow) =>
-    DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(canonicalCoreCourseName(row.name.trim()));
-  const catalogRowsFromCore = result.coreRows.filter(isCatalogCourse);
-  const catalogRowsFromElective = result.electiveRows.filter(isCatalogCourse);
-  const nonCatalogCoreRows = result.coreRows.filter((row) => !isCatalogCourse(row));
-  const nonCatalogElectiveRows = result.electiveRows.filter((row) => !isCatalogCourse(row));
-
-  const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], nonCatalogCoreRows);
-  const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], nonCatalogElectiveRows);
-  const catalogNamesInCore = new Set(catalogRowsFromCore.map((r) => r.name.trim()));
-  const catalogNamesInElective = new Set(catalogRowsFromElective.map((r) => r.name.trim()));
-  const coreRemovals = (coreCategory?.entries ?? []).map((e) => e.name.trim()).filter((n) => catalogNamesInCore.has(n));
-  const electiveRemovals = (electiveCategory?.entries ?? [])
-    .map((e) => e.name.trim())
-    .filter((n) => catalogNamesInElective.has(n));
+  const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], result.coreRows);
+  const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], result.electiveRows);
 
   const mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[] = [];
   const newMandatoryEntries: CourseCompletionEntry[] = [];
   if (mandatoryCategory) {
     const existingNames = new Set(mandatoryCategory.entries.map((e) => e.name.trim()));
     const seenNew = new Set<string>();
-    const seenCanonical = new Set<string>();
-    // Only rows that actually match a known catalog course make it into
-    // this combined list - a non-catalog ליבה/בחירה course (e.g. "כריית
-    // טקסטים") never reaches here, so it can't spawn a bogus מקצועות חובה
-    // entry the way a genuine מדעי הנתונים extra (e.g. סמינריון)
-    // legitimately can (see newMandatoryEntries below).
-    for (const row of [...result.mandatoryRows, ...catalogRowsFromCore, ...catalogRowsFromElective]) {
+    for (const row of result.mandatoryRows) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
-      if (seenCanonical.has(canonicalName)) continue;
       // Canonicalize the STORED entry's name too, not just the PDF row's -
       // an older curriculum's own English name (or another alternate
       // spelling in DATA_SCIENCE_CORE_CURRICULUM_ALIASES) would otherwise
@@ -381,16 +335,12 @@ export function buildAcademicBalancePreview(
         newMandatoryEntries.push(toMandatoryEntry(row));
         continue;
       }
-      seenCanonical.add(canonicalName);
       const gradeFill = entry.grade === undefined ? row.grade : undefined;
       // נדרש, not נלמד - a course's standard נ"ז weight, present whether or
       // not the student has taken it, and correct even when נלמד exceeds it
-      // (see the module comment on the "!" over-credit case); falls back to
-      // the row's own credits for a ליבה/בחירה row, which never has נדרש.
-      // Synced on every import (not just when missing) so a re-import can
-      // correct it.
-      const rowCredits = row.required ?? row.credits;
-      const creditsFill = rowCredits !== undefined && rowCredits !== entry.credits ? rowCredits : undefined;
+      // (see the module comment on the "!" over-credit case). Synced on
+      // every import (not just when missing) so a re-import can correct it.
+      const creditsFill = row.required !== undefined && row.required !== entry.credits ? row.required : undefined;
       if (gradeFill !== undefined || creditsFill !== undefined || entry.name !== canonicalName) {
         mandatoryUpdates.push({ originalName: entry.name, name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
@@ -406,8 +356,6 @@ export function buildAcademicBalancePreview(
     coreCreditFills: coreSplit.creditFills,
     electiveCreditFills: electiveSplit.creditFills,
     mandatoryUpdates,
-    coreRemovals,
-    electiveRemovals,
   };
 }
 
@@ -421,9 +369,6 @@ export function applyAcademicBalanceToCategories(
   return categories.map((c) => {
     if (c.key === "core") {
       let entries = c.entries;
-      if (preview.coreRemovals.length > 0) {
-        entries = entries.filter((e) => !preview.coreRemovals.includes(e.name.trim()));
-      }
       if (preview.coreCreditFills.length > 0) {
         entries = entries.map((e) => {
           const fill = preview.coreCreditFills.find((f) => f.name === e.name.trim());
@@ -435,9 +380,6 @@ export function applyAcademicBalanceToCategories(
     }
     if (c.key === "elective") {
       let entries = c.entries;
-      if (preview.electiveRemovals.length > 0) {
-        entries = entries.filter((e) => !preview.electiveRemovals.includes(e.name.trim()));
-      }
       if (preview.electiveCreditFills.length > 0) {
         entries = entries.map((e) => {
           const fill = preview.electiveCreditFills.find((f) => f.name === e.name.trim());

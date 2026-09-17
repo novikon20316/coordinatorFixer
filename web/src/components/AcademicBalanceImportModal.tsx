@@ -90,9 +90,7 @@ export function AcademicBalanceImportModal({
       preview.coreCreditFills.length +
       preview.electiveCreditFills.length +
       preview.mandatoryUpdates.length +
-      preview.newMandatoryEntries.length +
-      preview.coreRemovals.length +
-      preview.electiveRemovals.length
+      preview.newMandatoryEntries.length
     : 0;
 
   return (
@@ -141,14 +139,6 @@ export function AcademicBalanceImportModal({
                 String(preview.mandatoryUpdates.length + preview.newMandatoryEntries.length)
               )}
             </p>
-            {(preview.coreRemovals.length > 0 || preview.electiveRemovals.length > 0) && (
-              <p className="text-xs text-gray-600">
-                {he.academicBalanceImport.movedToMandatoryCount.replace(
-                  "{count}",
-                  String(preview.coreRemovals.length + preview.electiveRemovals.length)
-                )}
-              </p>
-            )}
             {totalChanges === 0 && <p className="text-xs text-amber-700">{he.academicBalanceImport.noChanges}</p>}
           </div>
         )}
