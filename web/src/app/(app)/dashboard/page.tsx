@@ -51,11 +51,20 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   );
 }
 
+// "בהשלמה" (COMPLETION) describes a student actively working through missing
+// credits; once certified they're done completing, so under their own
+// cohort's filter a certified student always displays as "פעיל" (REGULAR)
+// regardless of their stored track - only a still-uncertified student is
+// shown by their actual track.
+function trackForDisplay(student: Student): StudentTrack {
+  return isGraduatedStatus(student.status) ? StudentTrack.REGULAR : student.track;
+}
+
 function studentsForView(students: Student[], v: DashboardView, cohortFilter: string): Student[] {
   if (v === GRADUATED_VIEW) {
     return students.filter((s) => isGraduateVisible(s, cohortFilter));
   }
-  const byTrack = students.filter((s) => s.track === v);
+  const byTrack = students.filter((s) => trackForDisplay(s) === v);
   return cohortFilter
     ? byTrack.filter((s) => s.cohortYear === cohortFilter)
     : byTrack.filter((s) => !isGraduatedStatus(s.status));
