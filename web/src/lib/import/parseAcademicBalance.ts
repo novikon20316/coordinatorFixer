@@ -237,7 +237,13 @@ export interface AcademicBalanceImportPreview {
    *  always left exactly as the coordinator set them. */
   coreCreditFills: { name: string; credits: number }[];
   electiveCreditFills: { name: string; credits: number }[];
-  mandatoryUpdates: { name: string; grade?: number; credits?: number }[];
+  /** `originalName` is the entry's current stored name (matched against to
+   *  apply the update - see applyAcademicBalanceToCategories); `name` is
+   *  its canonical form, applied as a rename when the two differ (e.g. an
+   *  older curriculum's own English name, still stored as-is since renaming
+   *  it was previously only ever a display-time computation - see
+   *  syncCourseCategoriesFromHistory - never actually persisted). */
+  mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[];
 }
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
@@ -307,14 +313,19 @@ export function buildAcademicBalancePreview(
   const coreSplit = splitNewAndCreditFills(coreCategory?.entries ?? [], result.coreRows);
   const electiveSplit = splitNewAndCreditFills(electiveCategory?.entries ?? [], result.electiveRows);
 
-  const mandatoryUpdates: { name: string; grade?: number; credits?: number }[] = [];
+  const mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[] = [];
   const newMandatoryEntries: CourseCompletionEntry[] = [];
   if (mandatoryCategory) {
     const existingNames = new Set(mandatoryCategory.entries.map((e) => e.name.trim()));
     const seenNew = new Set<string>();
     for (const row of result.mandatoryRows) {
       const canonicalName = canonicalCoreCourseName(row.name.trim());
-      const entry = mandatoryCategory.entries.find((e) => e.name === canonicalName);
+      // Canonicalize the STORED entry's name too, not just the PDF row's -
+      // an older curriculum's own English name (or another alternate
+      // spelling in DATA_SCIENCE_CORE_CURRICULUM_ALIASES) would otherwise
+      // never match the PDF's current Hebrew name, duplicating the course
+      // as a brand-new entry instead of updating the existing one.
+      const entry = mandatoryCategory.entries.find((e) => canonicalCoreCourseName(e.name.trim()) === canonicalName);
       if (!entry) {
         // Not one of the known catalog courses (e.g. סמינר מחקר) - add it as
         // an extra entry instead of dropping it (see newMandatoryEntries).
@@ -330,8 +341,8 @@ export function buildAcademicBalancePreview(
       // (see the module comment on the "!" over-credit case). Synced on
       // every import (not just when missing) so a re-import can correct it.
       const creditsFill = row.required !== undefined && row.required !== entry.credits ? row.required : undefined;
-      if (gradeFill !== undefined || creditsFill !== undefined) {
-        mandatoryUpdates.push({ name: canonicalName, grade: gradeFill, credits: creditsFill });
+      if (gradeFill !== undefined || creditsFill !== undefined || entry.name !== canonicalName) {
+        mandatoryUpdates.push({ originalName: entry.name, name: canonicalName, grade: gradeFill, credits: creditsFill });
       }
     }
   }
@@ -382,10 +393,11 @@ export function applyAcademicBalanceToCategories(
       let entries = c.entries;
       if (preview.mandatoryUpdates.length > 0) {
         entries = entries.map((e) => {
-          const update = preview.mandatoryUpdates.find((u) => u.name === e.name);
+          const update = preview.mandatoryUpdates.find((u) => u.originalName === e.name);
           if (!update) return e;
           return {
             ...e,
+            name: update.name,
             grade: update.grade ?? e.grade,
             credits: update.credits ?? e.credits,
             passed: update.grade !== undefined || e.passed,
