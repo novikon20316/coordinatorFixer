@@ -7,7 +7,16 @@ import { FloatingDetailPanels } from "./FloatingDetailPanels";
 import { DetailPanelsProvider } from "../context/DetailPanelsContext";
 import { findRequiredCompletionCourses } from "../lib/completionCourses";
 
-export function StudentsCardGrid(props: { students: Student[]; allStudents?: Student[]; candidates?: Candidate[] }) {
+export function StudentsCardGrid(props: {
+  students: Student[];
+  allStudents?: Student[];
+  candidates?: Candidate[];
+  /** Bumped per student id (e.g. after an external write like the academic
+   *  balance import) to force just that student's card to remount and pick
+   *  up the fresh data - see StudentCard's doc comment on why it otherwise
+   *  never re-syncs from a write it didn't make itself. */
+  refreshTokens?: Record<string, number>;
+}) {
   return (
     <DetailPanelsProvider>
       <StudentsCardGridBody {...props} />
@@ -20,12 +29,14 @@ function StudentsCardGridBody({
   students,
   allStudents,
   candidates = [],
+  refreshTokens = {},
 }: {
   students: Student[];
   // Optional broader pool (e.g. every tab's students) to search across once
   // the coordinator types a query, instead of only the current tab's list.
   allStudents?: Student[];
   candidates?: Candidate[];
+  refreshTokens?: Record<string, number>;
 }) {
   const [search, setSearch] = useState("");
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
@@ -82,7 +93,7 @@ function StudentsCardGridBody({
         <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((s) => (
             <StudentCard
-              key={s.id}
+              key={refreshTokens[s.id] ? `${s.id}:${refreshTokens[s.id]}` : s.id}
               student={s}
               requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
               expanded={expandedIds.has(s.id)}

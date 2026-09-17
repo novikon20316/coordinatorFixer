@@ -23,7 +23,11 @@ export function AcademicBalanceImportModal({
 }: {
   students: Student[];
   onClose: () => void;
-  onDone: () => void;
+  /** Called with the imported student's id once the PATCH succeeds, so the
+   *  caller can force just that student's already-open card to remount and
+   *  pick up the fresh courseCategories - see StudentCard's own doc comment
+   *  on why it otherwise never re-syncs from an external write. */
+  onDone: (studentId: string) => void;
 }) {
   const [matched, setMatched] = useState<Student | null>(null);
   const [preview, setPreview] = useState<AcademicBalanceImportPreview | null>(null);
@@ -72,7 +76,7 @@ export function AcademicBalanceImportModal({
         body: JSON.stringify({ courseCategories: next }),
       });
       setDone(true);
-      onDone();
+      onDone(matched.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : he.common.error);
     } finally {

@@ -97,6 +97,11 @@ export default function DashboardPage() {
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
   const [showBalanceImport, setShowBalanceImport] = useState(false);
+  // Bumped per student id after the academic balance import writes to that
+  // student, so their already-open card remounts and picks up the fresh
+  // courseCategories instead of staying on whatever it had seeded at mount -
+  // see StudentCard's own doc comment on why it never re-syncs on its own.
+  const [refreshTokens, setRefreshTokens] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const unsubscribe = subscribeStudents(faculty, setStudents);
@@ -206,7 +211,12 @@ export default function DashboardPage() {
           </select>
         )}
       </div>
-      <StudentsCardGrid students={visibleStudents} allStudents={searchableStudents} candidates={candidates} />
+      <StudentsCardGrid
+        students={visibleStudents}
+        allStudents={searchableStudents}
+        candidates={candidates}
+        refreshTokens={refreshTokens}
+      />
 
       {showImport && <StudentsImportModal onClose={() => setShowImport(false)} onImported={() => {}} />}
 
@@ -236,7 +246,9 @@ export default function DashboardPage() {
         <AcademicBalanceImportModal
           students={students}
           onClose={() => setShowBalanceImport(false)}
-          onDone={() => {}}
+          onDone={(studentId) =>
+            setRefreshTokens((prev) => ({ ...prev, [studentId]: (prev[studentId] ?? 0) + 1 }))
+          }
         />
       )}
     </div>
