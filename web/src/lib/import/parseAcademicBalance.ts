@@ -55,8 +55,12 @@ export interface AcademicBalanceResult {
 
 // Requires a dash - a real course code always has one (e.g. "003-99225",
 // "000-0051095-31"), which is what keeps this from also matching a plain
-// number like a grade ("98") or subtotal value ("6.00").
-const CODE_PATTERN = /^\d+-\d[\d-]*(\s+תשפ\S*)?$/;
+// number like a grade ("98") or subtotal value ("6.00"). The trailing
+// "תשפX" year (and, for some rows, a single semester letter sandwiched
+// before it - e.g. "003-0099101-31 ב תשפה") is usually part of the same
+// text run as the code, but pdf.js doesn't merge them consistently across
+// every row of a real export, so both are optional here.
+const CODE_PATTERN = /^\d+-\d[\d-]*(\s+[א-ת])?(\s+תשפ\S*)?$/;
 const NUMBER_PATTERN = /^-?\d+(\.\d+)?$/;
 const KNOWN_DOMAINS = ["ליבה", "קורסי בחירה", "מדעי הנתונים"];
 
