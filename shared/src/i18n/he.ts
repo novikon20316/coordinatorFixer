@@ -133,6 +133,9 @@ export const he = {
     grade: "ציון",
     passed: "עבר/ה",
     removeCourse: "הסר",
+    exemptCourse: "פטור",
+    exemptCourseConfirm:
+      'לפטור את התלמיד/ה מהקורס "{name}"? הדרישה הכוללת של הקטגוריה תרד בהתאם - פעולה זו משפיעה על תלמיד/ה זה בלבד.',
     academicHistorySection: "היסטוריה אקדמית",
     academicHistoryEmpty: "לא יובאה היסטוריית ציונים",
     semesterAverage: "ממוצע סמסטר",

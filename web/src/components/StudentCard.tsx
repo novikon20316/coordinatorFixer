@@ -126,8 +126,10 @@ export function StudentCard({
     save({ milestones: next });
   }
 
-  function updateCategory(categoryKey: string, entries: CourseCompletionEntry[]) {
-    const next = courseCategories.map((c) => (c.key === categoryKey ? { ...c, entries } : c));
+  function updateCategory(categoryKey: string, entries: CourseCompletionEntry[], requiredCount?: number) {
+    const next = courseCategories.map((c) =>
+      c.key === categoryKey ? { ...c, entries, ...(requiredCount !== undefined ? { requiredCount } : {}) } : c
+    );
     setCourseCategories(next);
     save({ courseCategories: next });
   }
@@ -356,7 +358,7 @@ export function StudentCard({
               category={category}
               faculty={student.faculty}
               cohortYear={student.cohortYear}
-              onChange={(entries) => updateCategory(category.key, entries)}
+              onChange={(entries, requiredCount) => updateCategory(category.key, entries, requiredCount)}
             />
           ))}
 
@@ -403,7 +405,9 @@ function CourseCategorySection({
   category: CourseCompletionCategory;
   faculty: Faculty;
   cohortYear: HebrewYear | undefined;
-  onChange: (entries: CourseCompletionEntry[]) => void;
+  /** `requiredCount` is only passed when exempting a fixed-catalog course
+   *  (see removeRow) - a normal entry edit/removal leaves it undefined. */
+  onChange: (entries: CourseCompletionEntry[], requiredCount?: number) => void;
 }) {
   const requiredCredits = resolveCategoryRequiredCredits(faculty, cohortYear, category.key);
   const passedCount = category.entries.filter((e) => e.passed).length;
@@ -420,8 +424,22 @@ function CourseCategorySection({
     onChange([...category.entries, { name: "", passed: false }]);
   }
 
+  // Removing one of a fixed catalog's own required rows (not an extra one
+  // appended beyond it, like סמינריון) is an exemption from that specific
+  // department requirement for this one student - e.g. they already
+  // satisfied its intent via a ליבה/בחירה course instead (see the PDF's own
+  // domain for it, which the academic-balance import always trusts as-is
+  // rather than guessing a substitution itself). Confirmed separately since
+  // it also lowers this student's own personal target, unlike a normal
+  // remove.
   function removeRow(index: number) {
-    onChange(category.entries.filter((_, i) => i !== index));
+    const isFixedCatalogSlot = category.fixedCatalog && index < category.requiredCount;
+    if (isFixedCatalogSlot) {
+      const courseName = category.entries[index].name || he.studentCard.courseName;
+      if (!window.confirm(he.studentCard.exemptCourseConfirm.replace("{name}", courseName))) return;
+    }
+    const nextEntries = category.entries.filter((_, i) => i !== index);
+    onChange(nextEntries, isFixedCatalogSlot ? category.requiredCount - 1 : undefined);
   }
 
   return (
@@ -467,11 +485,11 @@ function CourseCategorySection({
               placeholder={he.studentCard.credits}
               className="w-14 rounded-md border border-gray-300 px-1.5 py-1 text-sm"
             />
-            {(!category.fixedCatalog || i >= category.requiredCount) && (
-              <button onClick={() => removeRow(i)} className="text-xs text-red-600 hover:underline">
-                {he.studentCard.removeCourse}
-              </button>
-            )}
+            <button onClick={() => removeRow(i)} className="text-xs text-red-600 hover:underline">
+              {category.fixedCatalog && i < category.requiredCount
+                ? he.studentCard.exemptCourse
+                : he.studentCard.removeCourse}
+            </button>
           </div>
         ))}
       </div>
