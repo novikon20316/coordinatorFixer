@@ -15,6 +15,7 @@ import {
   he,
   HebrewYear,
   isCourseCategoryComplete,
+  isGraduatedStatus,
   isCourseworkComplete,
   MilestoneProgress,
   resolveCategoryRequiredCredits,
@@ -166,6 +167,11 @@ export function StudentCard({
             {student.cohortYear && (
               <p className="mt-1 text-xs text-gray-500">
                 {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status, student.track)}
+              </p>
+            )}
+            {isGraduatedStatus(student.status) && student.graduationYear && (
+              <p className="mt-1 text-xs text-gray-500">
+                {he.studentCard.graduationYear}: {student.graduationYear}
               </p>
             )}
             <div className="mt-1.5 flex flex-wrap gap-1">

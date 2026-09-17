@@ -10,13 +10,12 @@ import {
   isDueForGraduationReview,
   Student,
   STUDENT_TRACK_VALUES,
-  StudentStatus,
   studentCohortYearLabel,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
-import { StatusChangeModal } from "../../../components/StatusChangeModal";
+import { StatusChangeModal, StatusUpdate } from "../../../components/StatusChangeModal";
 import { BulkStatusChangeModal } from "../../../components/BulkStatusChangeModal";
 
 function isDue(s: Student): boolean {
@@ -58,8 +57,8 @@ export default function ChangeStatusPage() {
       .sort((a, b) => a.fullName.localeCompare(b.fullName, "he"));
   }, [students, trackFilter, cohortFilter, dueOnly, search]);
 
-  function handleStatusChange(studentId: string, status: StudentStatus) {
-    setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, status } : s)));
+  function handleStatusChange(studentId: string, update: StatusUpdate) {
+    setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, ...update } : s)));
   }
 
   return (

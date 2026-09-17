@@ -1,17 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { he, Student, STUDENT_STATUS_VALUES, StudentStatus } from "@admin-coordinator/shared";
+import {
+  cohortYearOptionLabel,
+  CURRENT_HEBREW_YEAR,
+  he,
+  HEBREW_YEAR_VALUES,
+  HebrewYear,
+  isGraduatedStatus,
+  Student,
+  STUDENT_STATUS_VALUES,
+  StudentStatus,
+} from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
+import { StatusUpdate } from "./StatusChangeModal";
 
 /**
- * Same idea as StatusChangeModal, but applies one chosen status to every
- * student in `students` at once - for a coordinator who has already reviewed
- * a filtered list (e.g. everyone due for graduation review, see
- * isDueForGraduationReview) and wants to close them all out together instead
- * of clicking through one by one. Still a real per-student PATCH under the
- * hood, just fired for the whole list; a student whose PATCH fails is
- * reported by name afterward instead of failing the rest.
+ * Same idea as StatusChangeModal, but applies one chosen status (and, when
+ * graduating, one chosen graduation year) to every student in `students` at
+ * once - for a coordinator who has already reviewed a filtered list (e.g.
+ * everyone due for graduation review, see isDueForGraduationReview) and
+ * wants to close them all out together instead of clicking through one by
+ * one. Still a real per-student PATCH under the hood, just fired for the
+ * whole list; a student whose PATCH fails is reported by name afterward
+ * instead of failing the rest.
  */
 export function BulkStatusChangeModal({
   students,
@@ -20,19 +32,21 @@ export function BulkStatusChangeModal({
 }: {
   students: Student[];
   onClose: () => void;
-  onStatusChange: (studentId: string, status: StudentStatus) => void;
+  onStatusChange: (studentId: string, update: StatusUpdate) => void;
 }) {
   const [status, setStatus] = useState<StudentStatus>(StudentStatus.GRADUATED_ELIGIBLE);
+  const [graduationYear, setGraduationYear] = useState<HebrewYear>(CURRENT_HEBREW_YEAR);
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
     setSaving(true);
+    const update: StatusUpdate = { status, graduationYear: isGraduatedStatus(status) ? graduationYear : undefined };
     const failures: string[] = [];
     await Promise.all(
       students.map(async (student) => {
         try {
-          await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify({ status }) });
-          onStatusChange(student.id, status);
+          await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify(update) });
+          onStatusChange(student.id, update);
         } catch {
           failures.push(student.fullName);
         }
@@ -67,6 +81,23 @@ export function BulkStatusChangeModal({
             ))}
           </select>
         </label>
+
+        {isGraduatedStatus(status) && (
+          <label className="mt-3 flex flex-col gap-1 text-xs text-gray-600">
+            {he.changeStatus.graduationYearLabel}
+            <select
+              value={graduationYear}
+              onChange={(e) => setGraduationYear(e.target.value as HebrewYear)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              {HEBREW_YEAR_VALUES.map((y) => (
+                <option key={y} value={y}>
+                  {cohortYearOptionLabel(y)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div className="mt-5 flex justify-end gap-3">
           <button

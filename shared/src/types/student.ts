@@ -102,6 +102,16 @@ export interface Student {
    *  yearOfStudy) instead of storing a year-of-study snapshot that would go
    *  stale as Hebrew years roll over. */
   cohortYear?: HebrewYear;
+  /** The Hebrew year this student actually finished the program - set by a
+   *  coordinator the moment they mark the student with one of the two
+   *  graduated statuses (see isGraduatedStatus in constants/status.ts), via
+   *  StatusChangeModal/BulkStatusChangeModal. Kept separate from cohortYear
+   *  since the program nominally runs 2 years but a student can legitimately
+   *  take longer - this is the real finish year, not a computed one. Drives
+   *  which cohort-filter years show the student under the dashboard's
+   *  graduates tab (see dashboard/page.tsx); a record saved before this
+   *  field existed falls back to an approximation there instead. */
+  graduationYear?: HebrewYear;
   /** True once this student has ever been on the COMPLETION track
    *  ("בהשלמה"), even after a coordinator later moves them to REGULAR
    *  ("מן המניין") once they finish their קורסי השלמה - `track` alone only
