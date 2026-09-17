@@ -12,6 +12,7 @@ import {
   HebrewYear,
 } from "@admin-coordinator/shared";
 import * as studentsService from "../services/students.service";
+import { fetchOrgSystemProgress } from "../services/orgSystemClient.service";
 
 // Mirrors userImportExport.ts's MAX_IMPORT_ROWS on the sibling system - this
 // admin utility only ever handles a college department's roster, not an
@@ -69,6 +70,29 @@ export async function removeStudent(req: Request, res: Response, next: NextFunct
   try {
     await studentsService.deleteStudent(req.params.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Fetches a student's project milestones/grades from organization-all-system
+ * (matched there by this student's idNumber/ת.ז) for the web client to
+ * preview before saving - this route only reads and returns that data, it
+ * never writes to the student record itself (the modal PATCHes
+ * /api/students/:id separately once the coordinator confirms, same as the
+ * academic-balance PDF import).
+ */
+export async function getOrgSystemProgress(req: Request, res: Response, next: NextFunction) {
+  try {
+    const student = await studentsService.getStudent(req.params.id);
+    if (!student) return res.status(404).json({ error: "Student not found" });
+    if (!student.idNumber) {
+      return res.status(400).json({ error: "Student has no idNumber to match against organization-all-system" });
+    }
+
+    const progress = await fetchOrgSystemProgress(student.idNumber);
+    res.json(progress);
   } catch (err) {
     next(err);
   }

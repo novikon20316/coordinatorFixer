@@ -27,6 +27,7 @@ import {
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 import { useDetailPanels } from "../context/DetailPanelsContext";
+import { ProjectProgressSyncModal } from "./ProjectProgressSyncModal";
 
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
@@ -81,6 +82,7 @@ export function StudentCard({
   const [showMissing, setShowMissing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showClearanceComingSoon, setShowClearanceComingSoon] = useState(false);
+  const [showProgressSync, setShowProgressSync] = useState(false);
 
   async function save(patch: Partial<Student>) {
     setSaveError(null);
@@ -270,7 +272,16 @@ export function StudentCard({
           )}
 
           <section className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-            <h4 className="mb-2 text-xs font-semibold text-gray-700">{he.studentCard.projectSection}</h4>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h4 className="text-xs font-semibold text-gray-700">{he.studentCard.projectSection}</h4>
+              <button
+                type="button"
+                onClick={() => setShowProgressSync(true)}
+                className="text-xs font-medium text-blue-700 hover:underline"
+              >
+                {he.projectProgressSync.syncButton}
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <input
                 value={projectTitle}
@@ -301,6 +312,13 @@ export function StudentCard({
                       placeholder={he.studentCard.milestoneNamePlaceholder}
                       className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
                     />
+                    {/* Read-only - only ever filled by ProjectProgressSyncModal's
+                        sync from organization-all-system, never typed by hand. */}
+                    {m.grade != null && (
+                      <span className="rounded-md bg-gray-100 px-1.5 py-1 text-xs text-gray-700" dir="ltr">
+                        {m.grade}
+                      </span>
+                    )}
                     <button onClick={() => removeMilestone(m.key)} className="text-xs text-red-600 hover:underline">
                       {he.studentCard.removeMilestone}
                     </button>
@@ -357,6 +375,14 @@ export function StudentCard({
               ))}
           </div>
         </div>
+      )}
+
+      {showProgressSync && (
+        <ProjectProgressSyncModal
+          student={student}
+          onClose={() => setShowProgressSync(false)}
+          onDone={() => setShowProgressSync(false)}
+        />
       )}
     </div>
   );

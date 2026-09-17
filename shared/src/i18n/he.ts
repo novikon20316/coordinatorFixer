@@ -230,6 +230,22 @@ export const he = {
     resultSummary: "יובאו/עודכנו {count} רשומות",
   },
 
+  projectProgressSync: {
+    title: "סנכרון התקדמות פרויקט",
+    description:
+      'שליפת אבני הדרך והציונים של הפרויקט/תזה עבור תלמיד/ה זה/ו ממערכת "כל הפרויקטים" (organization-all-system), לפי תעודת הזהות.',
+    syncButton: "סנכרון נתוני פרויקט",
+    loading: "שולף נתונים...",
+    notFound: 'לא נמצא/ה תלמיד/ה עם ת.ז {idNumber} במערכת "כל הפרויקטים"',
+    noIdNumber: "לא הוזנה תעודת זהות לתלמיד/ה זה/ו - נדרשת כדי להתאים למערכת השנייה",
+    noProject: 'לא נמצא פרויקט רשום עבור תלמיד/ה זה/ו במערכת "כל הפרויקטים"',
+    changedCount: "אבני דרך שעודכנו: {count}",
+    noChanges: "אין נתונים חדשים לסנכרון",
+    willUpdateProjectTitle: "שם הפרויקט יעודכן ל: {title}",
+    willUpdateSupervisor: "שם המנחה יעודכן ל: {name}",
+    success: "נתוני הפרויקט סונכרנו בהצלחה",
+  },
+
   academicBalanceImport: {
     title: "ייבוא מאזן חובות",
     description:

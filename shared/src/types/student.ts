@@ -45,6 +45,20 @@ export interface MilestoneProgress {
   nameHe: string;
   nameEn: string;
   done: boolean;
+  /** ציון אבן הדרך - only present once organization-all-system (the sibling
+   *  HIT system that actually runs the project/thesis workflow) has graded
+   *  it; a coordinator never types into this directly. See
+   *  web/src/lib/import/parseProjectProgress.ts. */
+  grade?: number;
+  /** Due date as an ISO string, mirrored from organization-all-system as-is
+   *  (that system owns the real deadline; this is display-only here). */
+  dueDate?: string;
+  /** organization-all-system's own status string for this milestone (e.g.
+   *  "pending"/"submitted"/"graded"/"coordinator_approved"/"completed") -
+   *  kept verbatim rather than translated, since this system doesn't run the
+   *  workflow and has no authoritative meaning for the intermediate states.
+   *  Absent for a milestone that was never matched to a synced one. */
+  externalStatus?: string;
 }
 
 /** One course/grade pair as reported in a department grade sheet for one
