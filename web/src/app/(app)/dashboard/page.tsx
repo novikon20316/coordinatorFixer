@@ -28,10 +28,16 @@ import { useFaculty } from "../../../context/FacultyContext";
 // on. A student counts as graduated only by status (isGraduatedStatus, i.e.
 // one of the two "מוסמך/כת" statuses set by hand) - never inferred merely
 // from having an earlier cohort year while still ACTIVE. A certified
-// student is excluded from the track tabs unconditionally, but only shows
-// under the graduates tab once the cohort filter has caught up to them:
-// either "כל המחזורים" (no filter), or the Hebrew year right after their
-// own cohortYear - not their own cohort year, and not any later one either.
+// student only shows under the graduates tab once the cohort filter has
+// caught up to them: either "כל המחזורים" (no filter), or the Hebrew year
+// right after their own cohortYear - not their own cohort year, and not any
+// later one either. Under their OWN cohort year's filter they instead
+// belong under their track tab regardless of current status - that filter
+// is a snapshot of "who was in this cohort", not a live status check, so a
+// student who has since been certified still shows there. Only the
+// unfiltered "כל המחזורים" view of the track tabs excludes certified
+// students, since that view means "who's currently active across every
+// cohort".
 const GRADUATED_VIEW = "GRADUATED" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
 
@@ -45,15 +51,14 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   );
 }
 
-// Track tabs narrow to students who started exactly in the selected cycle
-// and were never certified; the graduates tab has its own cycle rule above,
-// so it isn't narrowed by exact cohortYear here.
 function studentsForView(students: Student[], v: DashboardView, cohortFilter: string): Student[] {
-  const byView =
-    v === GRADUATED_VIEW
-      ? students.filter((s) => isGraduateVisible(s, cohortFilter))
-      : students.filter((s) => s.track === v && !isGraduatedStatus(s.status));
-  return cohortFilter && v !== GRADUATED_VIEW ? byView.filter((s) => s.cohortYear === cohortFilter) : byView;
+  if (v === GRADUATED_VIEW) {
+    return students.filter((s) => isGraduateVisible(s, cohortFilter));
+  }
+  const byTrack = students.filter((s) => s.track === v);
+  return cohortFilter
+    ? byTrack.filter((s) => s.cohortYear === cohortFilter)
+    : byTrack.filter((s) => !isGraduatedStatus(s.status));
 }
 
 export default function DashboardPage() {
