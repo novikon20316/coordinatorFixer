@@ -32,6 +32,17 @@ import { PdfPage, PdfTextItem } from "./pdfText";
  *   of the course (flagged with "!" in the report, since the excess never
  *   counts toward the total), and נדרש is what's meaningful either way,
  *   whether or not the course has a grade yet.
+ *
+ * Two more values are read off the report but don't belong to any course
+ * category - they map onto Student's own top-level fields instead (see
+ * buildAcademicBalancePreview):
+ * - "פרויקט גמר" ("פרוייקט גמר" in the report's own spelling): a domain-like
+ *   banner section of its own, holding exactly one course row - the
+ *   student's actual project/thesis. Its ציון is Student.finalGrade.
+ * - "סיכום כללי": the report's closing line, whose ציון is the student's
+ *   overall average across the whole degree - Student.gpa (see its doc
+ *   comment and the studentCard.degreeGpaHint copy - this is meant to be
+ *   re-synced on every import, unlike finalGrade/course grades).
  */
 
 interface ParsedCourseRow {
@@ -52,6 +63,13 @@ export interface AcademicBalanceResult {
    *  catalog by the caller (buildAcademicBalancePreview), since only some of
    *  these rows (e.g. not "סמינר מחקר") belong to that catalog. */
   mandatoryRows: ParsedCourseRow[];
+  /** ציון from the "פרויקט גמר" section's single course row - see the module
+   *  comment. Undefined when the report has no graded project/thesis yet. */
+  projectGrade?: number;
+  /** ציון from the report's closing "סיכום כללי" line - see the module
+   *  comment. Undefined only if that line wasn't found (unexpected report
+   *  layout), not merely because it's 0. */
+  overallAverage?: number;
 }
 
 // Requires a dash - a real course code always has one (e.g. "003-99225",
@@ -64,6 +82,20 @@ export interface AcademicBalanceResult {
 const CODE_PATTERN = /^\d+-\d[\d-]*(\s+[א-ת])?(\s+תשפ\S*)?$/;
 const NUMBER_PATTERN = /^-?\d+(\.\d+)?$/;
 const KNOWN_DOMAINS = ["ליבה", "קורסי בחירה", "מדעי הנתונים"];
+
+// The report spells this "פרוייקט גמר" (double י) in practice, but matched
+// loosely here in case that varies across exports. Its own banner (like
+// KNOWN_DOMAINS) precedes a single course row - the student's actual
+// project/thesis, whose ציון is the "פרויקט גמר" grade (see module comment).
+const PROJECT_BANNER_PATTERN = /^פרוי+קט גמר$/;
+const PROJECT_DOMAIN = "פרויקט גמר";
+
+// The report's final row, after every domain's own subtotal - ties together
+// into one line ("y" grouping merges it with the two rows just above it,
+// since all three sit within groupIntoRows's 4.5pt tolerance) so it never has
+// a course code and is otherwise indistinguishable from a discarded subtotal
+// row. Its ציון is the student's overall/degree average (see module comment).
+const GENERAL_SUMMARY_LABEL = "סיכום כללי";
 
 // x-bands calibrated against a real מאזן חובות אקדמיים export - the
 // report's generator uses fixed coordinates regardless of student. Small
@@ -115,6 +147,7 @@ function findHeaderY(rows: PdfRow[]): number | undefined {
 function classifyBanner(text: string, currentDomain: string | undefined): string {
   const trimmed = text.trim();
   if (KNOWN_DOMAINS.includes(trimmed)) return trimmed;
+  if (PROJECT_BANNER_PATTERN.test(trimmed)) return PROJECT_DOMAIN;
   if (currentDomain && trimmed.startsWith(`${currentDomain} `)) return currentDomain;
   return "OTHER";
 }
@@ -135,8 +168,10 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
   const mandatory: ParsedCourseRow[] = [];
   let currentDomain = startDomain;
   let lastRow: ParsedCourseRow | undefined;
+  let projectGrade: number | undefined;
+  let overallAverage: number | undefined;
 
-  if (headerY === undefined) return { core, elective, mandatory, endDomain: currentDomain };
+  if (headerY === undefined) return { core, elective, mandatory, endDomain: currentDomain, projectGrade, overallAverage };
 
   // A small margin below the header row's own y also skips the "משני" line
   // of the wrapped "תחום משני" header label, which sits just under it.
@@ -154,6 +189,17 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
       if (lastRow && item.x <= COURSE_NAME_MAX_X && !NUMBER_PATTERN.test(text) && !text.startsWith('סה"כ')) {
         lastRow.name = `${lastRow.name} ${text}`.trim();
       }
+      continue;
+    }
+
+    // The report's final line - see GENERAL_SUMMARY_LABEL - merges with the
+    // two subtotal rows just above it and so never has a course code; caught
+    // here before the codeItem check below would otherwise discard it as an
+    // ordinary subtotal row.
+    if (row.items.some((i) => i.text.trim() === GENERAL_SUMMARY_LABEL)) {
+      const gradeItem = row.items.find((i) => NUMBER_PATTERN.test(i.text.trim()) && inBand(i.x, GRADE_X));
+      if (gradeItem) overallAverage = Number(gradeItem.text.trim());
+      lastRow = undefined;
       continue;
     }
 
@@ -190,9 +236,10 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
     if (currentDomain === "ליבה") core.push(parsedRow);
     else if (currentDomain === "קורסי בחירה") elective.push(parsedRow);
     else if (currentDomain === "מדעי הנתונים") mandatory.push(parsedRow);
+    else if (currentDomain === PROJECT_DOMAIN && grade !== undefined) projectGrade = grade;
   }
 
-  return { core, elective, mandatory, endDomain: currentDomain };
+  return { core, elective, mandatory, endDomain: currentDomain, projectGrade, overallAverage };
 }
 
 export function parseAcademicBalancePages(pages: PdfPage[]): AcademicBalanceResult {
@@ -204,15 +251,19 @@ export function parseAcademicBalancePages(pages: PdfPage[]): AcademicBalanceResu
   const coreRows: ParsedCourseRow[] = [];
   const electiveRows: ParsedCourseRow[] = [];
   const mandatoryRows: ParsedCourseRow[] = [];
+  let projectGrade: number | undefined;
+  let overallAverage: number | undefined;
   for (const page of pages) {
     const result = parsePage(page.items, currentDomain);
     coreRows.push(...result.core);
     electiveRows.push(...result.elective);
     mandatoryRows.push(...result.mandatory);
     currentDomain = result.endDomain;
+    if (result.projectGrade !== undefined) projectGrade = result.projectGrade;
+    if (result.overallAverage !== undefined) overallAverage = result.overallAverage;
   }
 
-  return { idNumber, fullName, coreRows, electiveRows, mandatoryRows };
+  return { idNumber, fullName, coreRows, electiveRows, mandatoryRows, projectGrade, overallAverage };
 }
 
 export interface AcademicBalanceImportPreview {
@@ -244,6 +295,17 @@ export interface AcademicBalanceImportPreview {
    *  it was previously only ever a display-time computation - see
    *  syncCourseCategoriesFromHistory - never actually persisted). */
   mandatoryUpdates: { originalName: string; name: string; grade?: number; credits?: number }[];
+  /** Student.finalGrade, filled from the "פרויקט גמר" section - only when the
+   *  student has none recorded yet, matching how every other course grade in
+   *  this preview is handled (never overwrites a grade already entered by
+   *  hand - see the module comment above). */
+  finalGradeFill?: number;
+  /** Student.gpa, from the report's closing "סיכום כללי" line - unlike
+   *  finalGrade this is re-synced on every import whenever it differs from
+   *  what's stored, since it's the student's live, still-changing degree
+   *  average rather than a one-time final grade (see studentCard.degreeGpaHint
+   *  and the module comment above). */
+  gpaFill?: number;
 }
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
@@ -347,6 +409,11 @@ export function buildAcademicBalancePreview(
     }
   }
 
+  const finalGradeFill =
+    result.projectGrade !== undefined && student.finalGrade === undefined ? result.projectGrade : undefined;
+  const gpaFill =
+    result.overallAverage !== undefined && result.overallAverage !== student.gpa ? result.overallAverage : undefined;
+
   return {
     idNumber: result.idNumber,
     fullName: result.fullName,
@@ -356,6 +423,8 @@ export function buildAcademicBalancePreview(
     coreCreditFills: coreSplit.creditFills,
     electiveCreditFills: electiveSplit.creditFills,
     mandatoryUpdates,
+    finalGradeFill,
+    gpaFill,
   };
 }
 

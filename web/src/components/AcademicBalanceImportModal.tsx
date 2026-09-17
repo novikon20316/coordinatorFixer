@@ -73,7 +73,11 @@ export function AcademicBalanceImportModal({
       const next = applyAcademicBalanceToCategories(categories, preview);
       await apiFetch(`/api/students/${matched.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ courseCategories: next }),
+        body: JSON.stringify({
+          courseCategories: next,
+          ...(preview.finalGradeFill !== undefined ? { finalGrade: preview.finalGradeFill } : {}),
+          ...(preview.gpaFill !== undefined ? { gpa: preview.gpaFill } : {}),
+        }),
       });
       setDone(true);
       onDone(matched.id);
@@ -90,7 +94,9 @@ export function AcademicBalanceImportModal({
       preview.coreCreditFills.length +
       preview.electiveCreditFills.length +
       preview.mandatoryUpdates.length +
-      preview.newMandatoryEntries.length
+      preview.newMandatoryEntries.length +
+      (preview.finalGradeFill !== undefined ? 1 : 0) +
+      (preview.gpaFill !== undefined ? 1 : 0)
     : 0;
 
   return (
@@ -139,6 +145,16 @@ export function AcademicBalanceImportModal({
                 String(preview.mandatoryUpdates.length + preview.newMandatoryEntries.length)
               )}
             </p>
+            {preview.finalGradeFill !== undefined && (
+              <p className="text-xs text-gray-600">
+                {he.academicBalanceImport.finalGradeFill.replace("{grade}", String(preview.finalGradeFill))}
+              </p>
+            )}
+            {preview.gpaFill !== undefined && (
+              <p className="text-xs text-gray-600">
+                {he.academicBalanceImport.gpaFill.replace("{gpa}", String(preview.gpaFill))}
+              </p>
+            )}
             {totalChanges === 0 && <p className="text-xs text-amber-700">{he.academicBalanceImport.noChanges}</p>}
           </div>
         )}
