@@ -10,8 +10,8 @@ import {
   CourseCompletionCategory,
   CourseCompletionEntry,
   Faculty,
-  hasCreditShortfall,
   hasFailingGrade,
+  totalCreditShortfall,
   he,
   HebrewYear,
   isCourseCategoryComplete,
@@ -143,7 +143,7 @@ export function StudentCard({
   const missingMilestones = milestones.filter((m) => !m.done);
   const nothingMissing = missingCategories.length === 0 && missingMilestones.length === 0;
   const failedGrade = hasFailingGrade(courseCategories, student.academicHistory);
-  const creditShortfall = hasCreditShortfall(courseCategories, student.faculty, student.cohortYear);
+  const creditShortfall = totalCreditShortfall(courseCategories, student.faculty, student.cohortYear);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -190,9 +190,9 @@ export function StudentCard({
                   {he.studentCard.failedCourseBadge}
                 </span>
               )}
-              {creditShortfall && (
+              {creditShortfall > 0 && (
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-800">
-                  {he.studentCard.creditShortfallBadge}
+                  {he.studentCard.creditShortfallBadge}: {creditShortfall}
                 </span>
               )}
             </div>

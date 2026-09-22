@@ -312,6 +312,19 @@ export function hasCreditShortfall(
   );
 }
 
+/** Sum of every category's `remaining` נ"ז (courseCategoryBalance above) -
+ *  the total credit count still missing across the whole degree. */
+export function totalCreditShortfall(
+  categories: CourseCompletionCategory[] | undefined,
+  faculty: Faculty,
+  cohortYear: HebrewYear | undefined
+): number {
+  return (categories ?? []).reduce(
+    (sum, c) => sum + courseCategoryBalance(c, resolveCategoryRequiredCredits(faculty, cohortYear, c.key)).remaining,
+    0
+  );
+}
+
 /** Merges one freshly-imported semester's grades into a student's existing
  *  academicHistory, replacing any prior entry for the same
  *  (yearOfStudy, semester, hebrewYear) - re-importing a file updates that
