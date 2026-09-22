@@ -478,6 +478,7 @@ function CourseCategorySection({
             />
             <input
               type="number"
+              step={0.5}
               value={entry.credits ?? ""}
               onChange={(e) =>
                 updateEntry(i, { credits: e.target.value === "" ? undefined : Number(e.target.value) })
