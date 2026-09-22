@@ -265,6 +265,14 @@ export const he = {
     gpaFill: "עדכון ממוצע ציונים בתואר: {gpa}",
     noChanges: "לא נמצאו שינויים חדשים לייבוא - ייתכן שהקובץ כבר יובא",
     success: "המאזן יובא בהצלחה",
+    batchDetected: "זוהה קובץ מרוכז עם {count} תלמידים",
+    batchUnknownEntry: "לא זוהה שם",
+    batchChangeCount: "{count} שינויים",
+    batchMatchedCount: "נמצאה התאמה: {count}",
+    batchUnmatchedCount: "ללא התאמה: {count}",
+    batchImportAll: "ייבא הכל",
+    batchImportedCount: "יובאו בהצלחה: {count}",
+    batchFailedCount: "נכשלו: {count}",
   },
 
   reports: {

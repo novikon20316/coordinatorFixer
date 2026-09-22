@@ -242,6 +242,47 @@ function parsePage(items: PdfTextItem[], startDomain: string | undefined) {
   return { core, elective, mandatory, endDomain: currentDomain, projectGrade, overallAverage };
 }
 
+// A student's own contact-info header page - printed once per student ahead
+// of their balance table(s) in both the per-student export and a combined
+// batch export covering a whole cohort. Detecting it is what lets a batch
+// file be split back into per-student page groups (see
+// splitAcademicBalanceBatch) without depending on the ת.זהות value itself,
+// which a balance page (not just a cover page) also carries.
+function isCoverPage(page: PdfPage): boolean {
+  const texts = new Set(page.items.map((i) => i.text.trim()));
+  return texts.has("כתובת") && texts.has("טלפונים");
+}
+
+/**
+ * Splits a combined "מאזן חובות אקדמיים" export - HIT's own batch download
+ * for a whole cohort, all students concatenated into one PDF - back into
+ * one page group per student, each importable exactly like a per-student
+ * export (see parseAcademicBalancePages). A new group starts at every cover
+ * page (see isCoverPage); a trailing report-footer page with no course data
+ * of its own (e.g. the batch's closing "התלמידים שנבחרו" criteria page)
+ * simply rides along on whichever student's group precedes it, contributing
+ * nothing once parsed.
+ *
+ * A single-student export - no cover page, or exactly one - comes back as
+ * one group holding every page, same as passing the whole file straight to
+ * parseAcademicBalancePages used to; callers only need to branch into batch
+ * handling once this returns more than one group.
+ */
+export function splitAcademicBalanceBatch(pages: PdfPage[]): PdfPage[][] {
+  const groups: PdfPage[][] = [];
+  let current: PdfPage[] = [];
+  for (const page of pages) {
+    if (isCoverPage(page) && current.length > 0) {
+      groups.push(current);
+      current = [page];
+    } else {
+      current.push(page);
+    }
+  }
+  if (current.length > 0) groups.push(current);
+  return groups.length > 0 ? groups : [pages];
+}
+
 export function parseAcademicBalancePages(pages: PdfPage[]): AcademicBalanceResult {
   const allRows = pages.flatMap((p) => groupIntoRows(p.items));
   const idNumber = extractLabeledValue(allRows, "ת.זהות");
@@ -478,4 +519,21 @@ export function applyAcademicBalanceToCategories(
     }
     return c;
   });
+}
+
+/** Total number of individual changes a preview would apply - shared between
+ *  the single-student and batch import UIs (see AcademicBalanceImportModal)
+ *  so a student with nothing new to import (already up to date) can be told
+ *  apart from one actually worth confirming. */
+export function countAcademicBalanceChanges(preview: AcademicBalanceImportPreview): number {
+  return (
+    preview.newCoreEntries.length +
+    preview.newElectiveEntries.length +
+    preview.coreCreditFills.length +
+    preview.electiveCreditFills.length +
+    preview.mandatoryUpdates.length +
+    preview.newMandatoryEntries.length +
+    (preview.finalGradeFill !== undefined ? 1 : 0) +
+    (preview.gpaFill !== undefined ? 1 : 0)
+  );
 }
