@@ -133,6 +133,7 @@ export function AcademicBalanceImportModal({
           courseCategories: next,
           ...(preview.finalGradeFill !== undefined ? { finalGrade: preview.finalGradeFill } : {}),
           ...(preview.gpaFill !== undefined ? { gpa: preview.gpaFill } : {}),
+          ...(preview.idNumberFill !== undefined ? { idNumber: preview.idNumberFill } : {}),
         }),
       });
       setDone(true);
@@ -161,6 +162,7 @@ export function AcademicBalanceImportModal({
             courseCategories: next,
             ...(entry.preview!.finalGradeFill !== undefined ? { finalGrade: entry.preview!.finalGradeFill } : {}),
             ...(entry.preview!.gpaFill !== undefined ? { gpa: entry.preview!.gpaFill } : {}),
+            ...(entry.preview!.idNumberFill !== undefined ? { idNumber: entry.preview!.idNumberFill } : {}),
           }),
         });
         onDone(student.id);
@@ -234,6 +236,11 @@ export function AcademicBalanceImportModal({
             {preview.gpaFill !== undefined && (
               <p className="text-xs text-gray-600">
                 {he.academicBalanceImport.gpaFill.replace("{gpa}", String(preview.gpaFill))}
+              </p>
+            )}
+            {preview.idNumberFill !== undefined && (
+              <p className="text-xs text-gray-600">
+                {he.academicBalanceImport.idNumberFill.replace("{idNumber}", preview.idNumberFill)}
               </p>
             )}
             {totalChanges === 0 && <p className="text-xs text-amber-700">{he.academicBalanceImport.noChanges}</p>}

@@ -263,6 +263,7 @@ export const he = {
     mandatoryCount: "עדכוני מקצועות חובה: {count}",
     finalGradeFill: "עדכון ציון פרויקט גמר: {grade}",
     gpaFill: "עדכון ממוצע ציונים בתואר: {gpa}",
+    idNumberFill: "השלמת תעודת זהות: {idNumber}",
     noChanges: "לא נמצאו שינויים חדשים לייבוא - ייתכן שהקובץ כבר יובא",
     success: "המאזן יובא בהצלחה",
     batchDetected: "זוהה קובץ מרוכז עם {count} תלמידים",

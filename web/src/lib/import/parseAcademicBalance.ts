@@ -347,6 +347,14 @@ export interface AcademicBalanceImportPreview {
    *  average rather than a one-time final grade (see studentCard.degreeGpaHint
    *  and the module comment above). */
   gpaFill?: number;
+  /** Student.idNumber, from the report's own ת.זהות - only when the student
+   *  has none on file yet (unlike gpa, never overwrites one already stored,
+   *  since a mismatch there more likely means this was matched by name onto
+   *  the wrong person than that the report is more current). A student
+   *  matched by name alone - e.g. added by hand with no ת.ז, or imported
+   *  from a source with no ID column - would otherwise stay without one
+   *  forever, since matching only ever reads this value, never writes it. */
+  idNumberFill?: string;
 }
 
 function toEntry(row: ParsedCourseRow): CourseCompletionEntry {
@@ -454,6 +462,7 @@ export function buildAcademicBalancePreview(
     result.projectGrade !== undefined && student.finalGrade === undefined ? result.projectGrade : undefined;
   const gpaFill =
     result.overallAverage !== undefined && result.overallAverage !== student.gpa ? result.overallAverage : undefined;
+  const idNumberFill = result.idNumber && !student.idNumber ? result.idNumber : undefined;
 
   return {
     idNumber: result.idNumber,
@@ -466,6 +475,7 @@ export function buildAcademicBalancePreview(
     mandatoryUpdates,
     finalGradeFill,
     gpaFill,
+    idNumberFill,
   };
 }
 
@@ -534,6 +544,7 @@ export function countAcademicBalanceChanges(preview: AcademicBalanceImportPrevie
     preview.mandatoryUpdates.length +
     preview.newMandatoryEntries.length +
     (preview.finalGradeFill !== undefined ? 1 : 0) +
-    (preview.gpaFill !== undefined ? 1 : 0)
+    (preview.gpaFill !== undefined ? 1 : 0) +
+    (preview.idNumberFill !== undefined ? 1 : 0)
   );
 }
