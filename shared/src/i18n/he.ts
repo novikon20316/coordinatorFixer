@@ -96,6 +96,9 @@ export const he = {
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
     graduatesTab: "מוסמכים/ות",
+    completionAttentionMessage: "הסטודנט/ית {name} קיבל/ה את כל הציונים ודורש/ת את תשומת לבך",
+    activeReadyAttentionMessage: "הסטודנט/ית {name} השלים/ה את כל הציונים ואין נ\"ז חסרים - דורש/ת את תשומת לבך",
+    dismissNotification: "סגור התראה",
   },
 
   studentForm: {
@@ -163,6 +166,8 @@ export const he = {
     missingCoursesBadge: "קורסים חסרים",
     failedCourseBadge: "קורס נכשל",
     creditShortfallBadge: "נ\"ז חסרים",
+    completionGradesInBadge: "כל ציוני ההשלמה התקבלו - דורש טיפול",
+    readyForReviewBadge: "כל הציונים והנ\"ז הושלמו - דורש טיפול",
     balanceRequired: "נדרש",
     balanceLearned: "נלמד",
     balanceRemaining: "נותר",

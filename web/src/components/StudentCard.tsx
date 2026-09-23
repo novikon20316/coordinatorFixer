@@ -46,6 +46,8 @@ let nextMilestoneId = 0;
 export function StudentCard({
   student,
   requiredCompletionCourses = [],
+  needsCompletionAttention = false,
+  needsActiveReviewAttention = false,
   expanded,
   onToggleExpanded,
 }: {
@@ -54,6 +56,17 @@ export function StudentCard({
    *  required (only when that candidate was admitted "על תנאי") - see
    *  web/src/lib/completionCourses.ts. */
   requiredCompletionCourses?: { name: string; grade?: number | string }[];
+  /** True once this (still בהשלמה) student has a recorded grade for every
+   *  required קורס השלמה - see isCompletionGradingDone in
+   *  web/src/lib/completionCourses.ts. Drives a persistent badge prompting
+   *  the coordinator to come decide the student's status; stays true (and
+   *  the badge stays up) until she changes the track/status. */
+  needsCompletionAttention?: boolean;
+  /** True once this ACTIVE-status student has all coursework and נ"ז done -
+   *  see isActiveCourseworkFullyDone. Drives a separate persistent badge
+   *  prompting the coordinator to move her toward a graduated status; stays
+   *  true until she changes the status or the data. */
+  needsActiveReviewAttention?: boolean;
   /** Whether this card is showing its full details - owned by the parent
    *  grid (StudentsCardGrid) so collapsing/expanding one card doesn't
    *  remount the others. */
@@ -193,6 +206,18 @@ export function StudentCard({
               {creditShortfall > 0 && (
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-800">
                   {he.studentCard.creditShortfallBadge}: {creditShortfall}
+                </span>
+              )}
+              {needsCompletionAttention && (
+                <span className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" aria-hidden />
+                  {he.studentCard.completionGradesInBadge}
+                </span>
+              )}
+              {needsActiveReviewAttention && (
+                <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" aria-hidden />
+                  {he.studentCard.readyForReviewBadge}
                 </span>
               )}
             </div>

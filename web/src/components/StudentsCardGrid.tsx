@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Candidate, he, Student } from "@admin-coordinator/shared";
+import { Candidate, he, isActiveCourseworkFullyDone, Student } from "@admin-coordinator/shared";
 import { StudentCard } from "./StudentCard";
 import { FloatingDetailPanels } from "./FloatingDetailPanels";
 import { DetailPanelsProvider } from "../context/DetailPanelsContext";
-import { findRequiredCompletionCourses } from "../lib/completionCourses";
+import { findRequiredCompletionCourses, isCompletionGradingDone } from "../lib/completionCourses";
 
 export function StudentsCardGrid(props: {
   students: Student[];
@@ -96,6 +96,8 @@ function StudentsCardGridBody({
               key={refreshTokens[s.id] ? `${s.id}:${refreshTokens[s.id]}` : s.id}
               student={s}
               requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
+              needsCompletionAttention={isCompletionGradingDone(s, candidates)}
+              needsActiveReviewAttention={isActiveCourseworkFullyDone(s)}
               expanded={expandedIds.has(s.id)}
               onToggleExpanded={() => toggleExpanded(s.id)}
             />

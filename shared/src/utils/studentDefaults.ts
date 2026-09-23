@@ -9,7 +9,7 @@ import {
 } from "../constants/dataScienceCurriculum";
 import { activeYearOfStudy, CURRENT_HEBREW_YEAR, HebrewYear, yearOfStudy } from "../constants/hebrewYear";
 import { he } from "../i18n/he";
-import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord } from "../types/student";
+import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord, Student } from "../types/student";
 
 /** Canonical display label for each fixed category key - the source of
  *  truth for what a category is called today. A category's own `label`
@@ -323,6 +323,27 @@ export function totalCreditShortfall(
     (sum, c) => sum + courseCategoryBalance(c, resolveCategoryRequiredCredits(faculty, cohortYear, c.key)).remaining,
     0
   );
+}
+
+/** True once an ACTIVE-status student has every course-completion category
+ *  cleared and no נ"ז shortfall remaining - i.e. the coordinator now has
+ *  everything needed to move her toward a graduated status. Read-time only,
+ *  same as isCourseworkComplete/totalCreditShortfall above (courseCategories
+ *  are synced from academicHistory first via syncCourseCategoriesFromHistory,
+ *  since a student's stored categories can lag behind freshly imported
+ *  grades). False for any faculty with no known curriculum (buildDefault-
+ *  CourseCategories returns no categories there, so isCourseworkComplete is
+ *  never true), same as the card's own "missing courses" badge today. */
+export function isActiveCourseworkFullyDone(
+  student: Pick<Student, "status" | "faculty" | "cohortYear" | "courseCategories" | "academicHistory">
+): boolean {
+  if (student.status !== StudentStatus.ACTIVE) return false;
+  const categories = syncCourseCategoriesFromHistory(
+    student.courseCategories ?? buildDefaultCourseCategories(student.faculty),
+    student.academicHistory
+  );
+  if (!isCourseworkComplete(categories)) return false;
+  return totalCreditShortfall(categories, student.faculty, student.cohortYear) === 0;
 }
 
 /** Merges one freshly-imported semester's grades into a student's existing

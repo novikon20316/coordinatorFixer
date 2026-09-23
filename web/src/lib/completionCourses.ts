@@ -38,3 +38,26 @@ export function findRequiredCompletionCourses(
   if (!match || match.acceptanceDecision !== "CONDITIONAL") return [];
   return match.completionCourses ?? [];
 }
+
+/**
+ * True once a COMPLETION-track student has an actual recorded grade (in
+ * their imported academicHistory, not the candidate record's own pre-
+ * admission grade) for every one of their required קורסי השלמה - i.e. the
+ * coordinator now has everything needed to decide whether to move them off
+ * בהשלמה. Only `typeof grade === "number"` counts as graded, same
+ * convention as hasFailingGrade/syncCourseCategoriesFromHistory in
+ * shared/src/utils/studentDefaults.ts, since a handful of source files use
+ * placeholder text like "טרם קיבל ציון" for a not-yet-graded course. False
+ * while there are no required completion courses at all (nothing to signal).
+ */
+export function isCompletionGradingDone(student: Student, candidates: Candidate[]): boolean {
+  const required = findRequiredCompletionCourses(student, candidates);
+  if (required.length === 0) return false;
+  const graded = new Set<string>();
+  for (const record of student.academicHistory ?? []) {
+    for (const course of record.courses) {
+      if (typeof course.grade === "number") graded.add(normalizeName(course.name));
+    }
+  }
+  return required.every((c) => graded.has(normalizeName(c.name)));
+}

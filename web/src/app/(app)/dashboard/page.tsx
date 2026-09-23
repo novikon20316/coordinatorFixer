@@ -19,11 +19,14 @@ import { AddStudentBar } from "../../../components/AddStudentBar";
 import { StudentsImportModal } from "../../../components/StudentsImportModal";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
 import { AcademicBalanceImportModal } from "../../../components/AcademicBalanceImportModal";
+import { CompletionAttentionToast } from "../../../components/CompletionAttentionToast";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { subscribeCandidates } from "../../../data/candidatesRepository";
 import { parseSemesterGrades } from "../../../lib/import/parseSemesterGrades";
 import { parseRoster } from "../../../lib/import/parseRoster";
 import { useFaculty } from "../../../context/FacultyContext";
+import { useCompletionAttentionAlerts } from "../../../hooks/useCompletionAttentionAlerts";
+import { useActiveGraduationAttentionAlerts } from "../../../hooks/useActiveGraduationAttentionAlerts";
 
 // A third view alongside the two real tracks - a graduated student shows
 // here instead of under their track, regardless of which track they were
@@ -117,19 +120,36 @@ export default function DashboardPage() {
 
   const countForView = (v: DashboardView) => studentsForView(students, v, cohortFilter).length;
 
+  // A בהשלמה student who now has grades for every required קורס השלמה, or an
+  // ACTIVE student whose coursework/נ"ז are now fully done, both need the
+  // coordinator to come decide her status - surfaced as a dot on the
+  // relevant tab (persists until dealt with) plus a one-shot toast (see
+  // CompletionAttentionToast/useOneShotAttentionAlerts).
+  const { pendingCount: completionAttentionCount, toasts: completionToasts, dismissToast: dismissCompletionToast } =
+    useCompletionAttentionAlerts(students, candidates);
+  const { pendingCount: activeAttentionCount, toasts: activeToasts, dismissToast: dismissActiveToast } =
+    useActiveGraduationAttentionAlerts(students);
+
+  function dismissAttentionToast(id: string) {
+    dismissCompletionToast(id);
+    dismissActiveToast(id);
+  }
+
   const viewOptions = useMemo(
     () => [
       {
         value: StudentTrack.REGULAR,
         label: `${he.dashboard.tabs[StudentTrack.REGULAR]} (${countForView(StudentTrack.REGULAR)})`,
+        badge: activeAttentionCount > 0,
       },
       {
         value: StudentTrack.COMPLETION,
         label: `${he.dashboard.tabs[StudentTrack.COMPLETION]} (${countForView(StudentTrack.COMPLETION)})`,
+        badge: completionAttentionCount > 0,
       },
       { value: GRADUATED_VIEW, label: `${he.dashboard.graduatesTab} (${countForView(GRADUATED_VIEW)})` },
     ],
-    [students, cohortFilter]
+    [students, cohortFilter, completionAttentionCount, activeAttentionCount]
   );
 
   const visibleStudents = useMemo(() => {
@@ -251,6 +271,11 @@ export default function DashboardPage() {
           }
         />
       )}
+
+      <CompletionAttentionToast
+        toasts={[...completionToasts, ...activeToasts]}
+        onDismiss={dismissAttentionToast}
+      />
     </div>
   );
 }
