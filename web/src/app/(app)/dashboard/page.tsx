@@ -15,7 +15,7 @@ import {
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
-import { AddStudentBar } from "../../../components/AddStudentBar";
+import { AddStudentModal } from "../../../components/AddStudentModal";
 import { StudentsImportModal } from "../../../components/StudentsImportModal";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
 import { AcademicBalanceImportModal } from "../../../components/AcademicBalanceImportModal";
@@ -98,6 +98,7 @@ export default function DashboardPage() {
   const [candidatesLoaded, setCandidatesLoaded] = useState(false);
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [yearFilter, setYearFilter] = useState<1 | 2 | "">("");
+  const [showAddStudent, setShowAddStudent] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showGradesImport, setShowGradesImport] = useState(false);
   const [showRosterImport, setShowRosterImport] = useState(false);
@@ -182,6 +183,12 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-900">{he.menu.overview}</h1>
         <div className="flex flex-wrap gap-2">
           <button
+            onClick={() => setShowAddStudent(true)}
+            className="flex items-center gap-1 rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          >
+            <span aria-hidden>+</span> {he.dashboard.addStudent}
+          </button>
+          <button
             onClick={() => setShowRosterImport(true)}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
@@ -207,10 +214,6 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-
-      {/* No manual refetch after adding/importing: subscribeStudents' onSnapshot
-          listener above already receives newly created docs in real time. */}
-      <AddStudentBar faculty={faculty} onCreated={() => {}} />
 
       <div className="flex flex-wrap items-center gap-3">
         <TrackTabs value={view} onChange={setView} options={viewOptions} />
@@ -247,6 +250,10 @@ export default function DashboardPage() {
         candidates={candidates}
         refreshTokens={refreshTokens}
       />
+
+      {showAddStudent && (
+        <AddStudentModal faculty={faculty} onClose={() => setShowAddStudent(false)} onCreated={() => {}} />
+      )}
 
       {showImport && <StudentsImportModal onClose={() => setShowImport(false)} onImported={() => {}} />}
 
