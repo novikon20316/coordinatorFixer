@@ -21,7 +21,11 @@ export function SideMenu() {
 
   const items =
     profile?.role === UserRole.ADMIN
-      ? [...ITEMS, { href: "/coordinators", label: he.menu.coordinators }]
+      ? [
+          ...ITEMS,
+          { href: "/coordinators", label: he.menu.coordinators },
+          { href: "/curriculum-corrections", label: he.menu.curriculumCorrections },
+        ]
       : ITEMS;
 
   return (

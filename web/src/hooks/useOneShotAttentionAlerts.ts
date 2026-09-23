@@ -46,7 +46,14 @@ function saveNotifiedIds(storageKey: string, ids: Set<string>) {
  */
 export function useOneShotAttentionAlerts(
   storageKey: string,
-  pending: { studentId: string; message: string; accent: "amber" | "purple" }[]
+  pending: { studentId: string; message: string; accent: "amber" | "purple" }[],
+  /** True once the caller's underlying student list has loaded at least
+   *  once. `subscribeStudents` (and React's dev-mode double-mount) can
+   *  briefly deliver an empty list before the real snapshot arrives - acting
+   *  on that as "nobody is pending anymore" would wrongly prune (and thus
+   *  re-announce) every already-notified id. The effect below no-ops
+   *  entirely until this is true. */
+  ready: boolean
 ) {
   const [toasts, setToasts] = useState<AttentionAlertItem[]>([]);
   const notifiedRef = useRef<Set<string> | null>(null);
@@ -55,6 +62,7 @@ export function useOneShotAttentionAlerts(
   const pendingIds = useMemo(() => new Set(pending.map((p) => p.studentId)), [pending]);
 
   useEffect(() => {
+    if (!ready) return;
     const notified = notifiedRef.current!;
     let changed = false;
 
@@ -85,7 +93,7 @@ export function useOneShotAttentionAlerts(
     // change), so it's compared by pendingIds instead to avoid an effect
     // loop; pending itself is read fresh inside the effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingIds]);
+  }, [pendingIds, ready]);
 
   function dismissToast(id: string) {
     setToasts((prev) => prev.filter((t) => t.id !== id));

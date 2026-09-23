@@ -1,5 +1,6 @@
 import { Faculty, isGraduatedStatus, StudentStatus, StudentTrack } from "../constants/status";
 import {
+  canonicalCoreCourseName,
   DATA_SCIENCE_CORE_CURRICULUM_ALIASES,
   DATA_SCIENCE_CORE_CURRICULUM_COURSES,
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
@@ -155,13 +156,6 @@ export function syncCourseCategoriesFromHistory(
     const match = allCourses.find((c) => names.includes(c.name) && typeof c.grade === "number");
     return match ? (match.grade as number) : undefined;
   }
-  function canonicalCoreCourseName(name: string): string {
-    if (DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(name)) return name;
-    const canonical = Object.keys(DATA_SCIENCE_CORE_CURRICULUM_ALIASES).find((c) =>
-      DATA_SCIENCE_CORE_CURRICULUM_ALIASES[c].includes(name)
-    );
-    return canonical ?? name;
-  }
 
   return categories.map((category) => {
     if (category.key === "core_curriculum") {
@@ -198,6 +192,121 @@ export function syncCourseCategoriesFromHistory(
 
     return category;
   });
+}
+
+export interface CoreCurriculumCourseRemoval {
+  categories: CourseCompletionCategory[];
+  /** A matching, ungraded entry was found and removed (requiredCount -1). */
+  removed: boolean;
+  /** A matching entry exists but already has a grade - left untouched, never
+   *  silently dropped; the caller should surface this for manual handling. */
+  skippedGraded: boolean;
+}
+
+/** Same effect as a coordinator manually exempting a student from one fixed
+ *  core_curriculum course (see StudentCard.tsx's removeRow: removes the
+ *  entry, requiredCount -1) - for bulk-correcting a course that was
+ *  mistakenly added to the fixed catalog for some cohorts. Only removes an
+ *  *ungraded* matching entry, so real recorded data is never silently
+ *  discarded - a graded entry is reported via `skippedGraded` instead.
+ *  "Graded" checks both the stored entry's own `grade` AND `academicHistory`
+ *  (alias-aware, same lookup as syncCourseCategoriesFromHistory's findGrade)
+ *  - a student's raw imported history can carry a real grade for this course
+ *  before that grade has ever been synced into their stored courseCategories,
+ *  and this must not treat that student as ungraded. Matches by
+ *  canonicalCoreCourseName (alias-aware), since a stored entry can still
+ *  carry an older cohort's name for the same course. Returns the original
+ *  `categories` reference when nothing was removed. */
+export function removeCoreCurriculumCourse(
+  categories: CourseCompletionCategory[],
+  courseName: string,
+  academicHistory: SemesterRecord[] | undefined
+): CoreCurriculumCourseRemoval {
+  const canonical = canonicalCoreCourseName(courseName);
+  const aliases = [canonical, ...(DATA_SCIENCE_CORE_CURRICULUM_ALIASES[canonical] ?? [])];
+  const hasHistoryGrade = (academicHistory ?? []).some((r) =>
+    r.courses.some((c) => aliases.includes(c.name) && typeof c.grade === "number")
+  );
+  let removedCount = 0;
+  let skippedGraded = false;
+
+  const next = categories.map((category) => {
+    if (category.key !== "core_curriculum") return category;
+    const entries = category.entries.filter((e) => {
+      if (canonicalCoreCourseName(e.name) !== canonical) return true;
+      if (e.grade !== undefined || hasHistoryGrade) {
+        skippedGraded = true;
+        return true;
+      }
+      removedCount++;
+      return false;
+    });
+    if (removedCount === 0) return category;
+    return { ...category, entries, requiredCount: category.requiredCount - removedCount };
+  });
+
+  return { categories: removedCount > 0 ? next : categories, removed: removedCount > 0, skippedGraded };
+}
+
+/** Overwrites a core_curriculum course's נ"ז credits (matching by
+ *  canonicalCoreCourseName) - e.g. correcting a credit value that was wrong
+ *  for a whole cohort. No-op (same `categories` reference, `changed: false`)
+ *  if the student has no matching entry (e.g. already exempted) or it
+ *  already holds this exact value. */
+export function setCoreCurriculumCourseCredits(
+  categories: CourseCompletionCategory[],
+  courseName: string,
+  credits: number
+): { categories: CourseCompletionCategory[]; changed: boolean } {
+  const canonical = canonicalCoreCourseName(courseName);
+  let changed = false;
+
+  const next = categories.map((category) => {
+    if (category.key !== "core_curriculum") return category;
+    const entries = category.entries.map((e) => {
+      if (canonicalCoreCourseName(e.name) !== canonical || e.credits === credits) return e;
+      changed = true;
+      return { ...e, credits };
+    });
+    return changed ? { ...category, entries } : category;
+  });
+
+  return { categories: changed ? next : categories, changed };
+}
+
+/** Re-adds a core_curriculum course that's missing from a student's checklist
+ *  but has a real recorded grade in academicHistory (alias-aware) - the
+ *  inverse of removeCoreCurriculumCourse, for repairing a student who was
+ *  wrongly exempted before that function's academicHistory check existed
+ *  (or any similar mistake). No-op if the course is already present, or has
+ *  no numeric grade in academicHistory. The restored entry is added as
+ *  `passed: true`, matching syncCourseCategoriesFromHistory's convention for
+ *  a history-sourced grade. */
+export function restoreCoreCurriculumCourseFromHistory(
+  categories: CourseCompletionCategory[],
+  courseName: string,
+  academicHistory: SemesterRecord[] | undefined
+): { categories: CourseCompletionCategory[]; restored: boolean; grade?: number } {
+  const canonical = canonicalCoreCourseName(courseName);
+  const aliases = [canonical, ...(DATA_SCIENCE_CORE_CURRICULUM_ALIASES[canonical] ?? [])];
+  const historyMatch = (academicHistory ?? [])
+    .flatMap((r) => r.courses)
+    .find((c) => aliases.includes(c.name) && typeof c.grade === "number");
+  if (!historyMatch) return { categories, restored: false };
+
+  const coreCurriculum = categories.find((c) => c.key === "core_curriculum");
+  if (!coreCurriculum) return { categories, restored: false };
+  if (coreCurriculum.entries.some((e) => canonicalCoreCourseName(e.name) === canonical)) {
+    return { categories, restored: false };
+  }
+
+  const grade = historyMatch.grade as number;
+  const next = categories.map((c) =>
+    c.key === "core_curriculum"
+      ? { ...c, requiredCount: c.requiredCount + 1, entries: [...c.entries, { name: canonical, grade, passed: true }] }
+      : c
+  );
+  return { categories: next, restored: true, grade };
 }
 
 /** Label for a מחזור (cohort year) option that also names the academic year

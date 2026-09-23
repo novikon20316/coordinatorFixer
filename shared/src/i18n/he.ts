@@ -49,6 +49,7 @@ export const he = {
     changeStatus: "שינוי סטטוס",
     history: "היסטוריה",
     coordinators: "ניהול רכזים",
+    curriculumCorrections: "תיקוני תוכנית לימודים",
     facultyFilter: "פקולטה מוצגת",
   },
 
@@ -77,6 +78,35 @@ export const he = {
     resetLinkHint: "העתק ושלח לרכז - הקישור תקף לזמן מוגבל ומיועד לשימוש חד פעמי",
     copyLink: "העתק קישור",
     close: "סגור",
+  },
+
+  curriculumCorrections: {
+    title: "תיקוני תוכנית לימודים",
+    accessDenied: "הדף הזה מיועד למנהל המערכת בלבד",
+    description: "תיקון בכמות גדולה של קטגוריית \"מקצועות חובה\" עבור תלמידי מדעי הנתונים, לפי מחזור.",
+    courseLabel: "מקצוע",
+    cohortFromLabel: "ממחזור",
+    cohortToLabel: "עד מחזור",
+    previewButton: "הצג תלמידים מושפעים",
+    applyButton: "החל שינויים ({count})",
+    applying: "מחיל שינויים...",
+    noneAffected: "לא נמצאו תלמידים מושפעים",
+    exemptSectionTitle: "פטור ממקצוע חובה",
+    exemptSectionDescription:
+      'מסיר את המקצוע מרשימת "מקצועות חובה" של כל תלמיד/ה במחזורים שנבחרו (כמו פעולת הפטור בכרטיס תלמיד/ה בודד), ומקטין את הדרישה הכוללת של הקטגוריה בהתאם - רק עבור תלמיד/ה שטרם קיבל/ה ציון במקצוע זה.',
+    skippedGradedNote: "יש ציון - יש לטפל ידנית",
+    exemptResultSummary: "פטור {count} תלמידים מהמקצוע",
+    creditsSectionTitle: "עדכון נ\"ז למקצוע חובה",
+    creditsSectionDescription: "מעדכן את מספר הנ\"ז הרשום למקצוע חובה זה עבור כל תלמיד/ה במחזורים שנבחרו שכבר יש לו/ה רשומה למקצוע.",
+    newCreditsLabel: "נ\"ז חדש",
+    currentCredits: "נוכחי",
+    newCredits: "חדש",
+    creditsResultSummary: "עודכנו נ\"ז עבור {count} תלמידים",
+    failuresSummary: "נכשל עבור: {names}",
+    restoreSectionTitle: "שחזור מקצוע שהוסר בטעות (יש ציון בהיסטוריה)",
+    restoreSectionDescription:
+      "עבור תלמיד/ה שהמקצוע הוסר לו/ה מ\"מקצועות חובה\" אך יש לו/ה ציון אמיתי בהיסטוריה האקדמית שטרם סונכרן לרשימת הדרישות - מחזיר את המקצוע לרשימה עם הציון שנמצא, ומעלה את הדרישה הכוללת של הקטגוריה בהתאם.",
+    restoreResultSummary: "שוחזרו {count} תלמידים",
   },
 
   dashboard: {

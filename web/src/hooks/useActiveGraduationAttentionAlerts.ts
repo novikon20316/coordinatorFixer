@@ -7,8 +7,10 @@ import { useOneShotAttentionAlerts } from "./useOneShotAttentionAlerts";
 const STORAGE_KEY = "activeGraduationAttentionNotifiedIds";
 
 /** ACTIVE-status students who now have every course-completion category
- *  cleared and no נ"ז shortfall left - see isActiveCourseworkFullyDone. */
-export function useActiveGraduationAttentionAlerts(students: Student[]) {
+ *  cleared and no נ"ז shortfall left - see isActiveCourseworkFullyDone.
+ *  `ready` should be true once the caller's student list has loaded at least
+ *  once (see useOneShotAttentionAlerts). */
+export function useActiveGraduationAttentionAlerts(students: Student[], ready: boolean) {
   const pending = useMemo(
     () =>
       students
@@ -21,5 +23,5 @@ export function useActiveGraduationAttentionAlerts(students: Student[]) {
     [students]
   );
 
-  return useOneShotAttentionAlerts(STORAGE_KEY, pending);
+  return useOneShotAttentionAlerts(STORAGE_KEY, pending, ready);
 }

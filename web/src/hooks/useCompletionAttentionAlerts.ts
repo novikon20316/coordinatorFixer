@@ -8,8 +8,9 @@ import { useOneShotAttentionAlerts } from "./useOneShotAttentionAlerts";
 const STORAGE_KEY = "completionAttentionNotifiedIds";
 
 /** בהשלמה students who now have a grade for every required קורס השלמה - see
- *  isCompletionGradingDone. */
-export function useCompletionAttentionAlerts(students: Student[], candidates: Candidate[]) {
+ *  isCompletionGradingDone. `ready` should be true once the caller's student
+ *  list has loaded at least once (see useOneShotAttentionAlerts). */
+export function useCompletionAttentionAlerts(students: Student[], candidates: Candidate[], ready: boolean) {
   const pending = useMemo(
     () =>
       students
@@ -22,5 +23,5 @@ export function useCompletionAttentionAlerts(students: Student[], candidates: Ca
     [students, candidates]
   );
 
-  return useOneShotAttentionAlerts(STORAGE_KEY, pending);
+  return useOneShotAttentionAlerts(STORAGE_KEY, pending, ready);
 }

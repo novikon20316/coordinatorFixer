@@ -57,6 +57,17 @@ export const DATA_SCIENCE_CORE_CURRICULUM_ALIASES: Record<string, string[]> = {
   "למידה סטטיסטית": ["למידה סטיסטית", "Statistical Learning"],
 };
 
+/** Resolves any known alternate spelling of a core-curriculum course (see
+ *  DATA_SCIENCE_CORE_CURRICULUM_ALIASES) back to its canonical Hebrew name -
+ *  a name with no known canonical/alias match is returned as-is. */
+export function canonicalCoreCourseName(name: string): string {
+  if (DATA_SCIENCE_CORE_CURRICULUM_COURSES.includes(name)) return name;
+  const canonical = Object.keys(DATA_SCIENCE_CORE_CURRICULUM_ALIASES).find((c) =>
+    DATA_SCIENCE_CORE_CURRICULUM_ALIASES[c].includes(name)
+  );
+  return canonical ?? name;
+}
+
 /**
  * The other two graduation requirements, on top of the core curriculum above.
  * Their actual course lists vary by year/college and aren't a fixed catalog

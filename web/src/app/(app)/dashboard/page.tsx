@@ -93,7 +93,9 @@ export default function DashboardPage() {
   const { faculty } = useFaculty();
   const [view, setView] = useState<DashboardView>(StudentTrack.REGULAR);
   const [students, setStudents] = useState<Student[]>([]);
+  const [studentsLoaded, setStudentsLoaded] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [candidatesLoaded, setCandidatesLoaded] = useState(false);
   const [cohortFilter, setCohortFilter] = useState<string>("");
   const [yearFilter, setYearFilter] = useState<1 | 2 | "">("");
   const [showImport, setShowImport] = useState(false);
@@ -107,14 +109,22 @@ export default function DashboardPage() {
   const [refreshTokens, setRefreshTokens] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const unsubscribe = subscribeStudents(faculty, setStudents);
+    setStudentsLoaded(false);
+    const unsubscribe = subscribeStudents(faculty, (data) => {
+      setStudents(data);
+      setStudentsLoaded(true);
+    });
     return unsubscribe;
   }, [faculty]);
 
   // Needed to look up a student's original candidate record for their
   // required קורסי השלמה - see lib/completionCourses.ts.
   useEffect(() => {
-    const unsubscribe = subscribeCandidates(faculty, setCandidates);
+    setCandidatesLoaded(false);
+    const unsubscribe = subscribeCandidates(faculty, (data) => {
+      setCandidates(data);
+      setCandidatesLoaded(true);
+    });
     return unsubscribe;
   }, [faculty]);
 
@@ -126,9 +136,9 @@ export default function DashboardPage() {
   // relevant tab (persists until dealt with) plus a one-shot toast (see
   // CompletionAttentionToast/useOneShotAttentionAlerts).
   const { pendingCount: completionAttentionCount, toasts: completionToasts, dismissToast: dismissCompletionToast } =
-    useCompletionAttentionAlerts(students, candidates);
+    useCompletionAttentionAlerts(students, candidates, studentsLoaded && candidatesLoaded);
   const { pendingCount: activeAttentionCount, toasts: activeToasts, dismissToast: dismissActiveToast } =
-    useActiveGraduationAttentionAlerts(students);
+    useActiveGraduationAttentionAlerts(students, studentsLoaded);
 
   function dismissAttentionToast(id: string) {
     dismissCompletionToast(id);
