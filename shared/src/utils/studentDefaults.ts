@@ -277,7 +277,11 @@ export interface CourseCategoryBalance {
   required: number;
   /** Sum of נ"ז from entries actually checked off passed. */
   learned: number;
-  /** required minus learned, never negative. */
+  /** required minus learned - negative once learned exceeds required (a
+   *  coordinator recording more נ"ז than the category strictly asks for),
+   *  so the balance row can show the real surplus instead of hiding it
+   *  behind a floor of 0. See totalCreditShortfall for why a surplus here
+   *  still isn't allowed to offset a shortfall in another category. */
   remaining: number;
   /** Average of every entry's numeric grade in this category, or null if
    *  none has a grade yet. */
@@ -297,7 +301,7 @@ export function courseCategoryBalance(
   );
   const grades = category.entries.map((e) => e.grade).filter((g): g is number => typeof g === "number");
   const average = grades.length > 0 ? Math.round((grades.reduce((a, b) => a + b, 0) / grades.length) * 100) / 100 : null;
-  return { required, learned, remaining: Math.max(required - learned, 0), average };
+  return { required, learned, remaining: required - learned, average };
 }
 
 /** True once any category still has נ"ז remaining per courseCategoryBalance
@@ -313,14 +317,19 @@ export function hasCreditShortfall(
 }
 
 /** Sum of every category's `remaining` נ"ז (courseCategoryBalance above) -
- *  the total credit count still missing across the whole degree. */
+ *  the total credit count still missing across the whole degree. A
+ *  category's own surplus (negative remaining) is floored at 0 before
+ *  summing, so having extra נ"ז in one category (e.g. ליבה) never masks a
+ *  real shortfall in another (e.g. בחירה) - only each category's own balance
+ *  row shows its real, un-floored surplus. */
 export function totalCreditShortfall(
   categories: CourseCompletionCategory[] | undefined,
   faculty: Faculty,
   cohortYear: HebrewYear | undefined
 ): number {
   return (categories ?? []).reduce(
-    (sum, c) => sum + courseCategoryBalance(c, resolveCategoryRequiredCredits(faculty, cohortYear, c.key)).remaining,
+    (sum, c) =>
+      sum + Math.max(courseCategoryBalance(c, resolveCategoryRequiredCredits(faculty, cohortYear, c.key)).remaining, 0),
     0
   );
 }
