@@ -92,6 +92,7 @@ export function StudentCard({
   const [supervisorName, setSupervisorName] = useState(student.supervisorName ?? "");
   const [finalGrade, setFinalGrade] = useState(student.finalGrade != null ? String(student.finalGrade) : "");
   const [gpa, setGpa] = useState(student.gpa != null ? String(student.gpa) : "");
+  const [status, setStatus] = useState<StudentStatus>(student.status);
   const { openDetail } = useDetailPanels();
   const [showMissing, setShowMissing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -147,8 +148,16 @@ export function StudentCard({
     save({ courseCategories: next });
   }
 
-  function changeStatus(status: StudentStatus) {
-    save({ status });
+  function changeStatus(next: StudentStatus) {
+    const previous = status;
+    setStatus(next);
+    setSaveError(null);
+    apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify({ status: next }) }).catch(
+      (err) => {
+        setStatus(previous);
+        setSaveError(err instanceof Error ? err.message : he.common.error);
+      }
+    );
   }
 
   const complete = isCourseworkComplete(courseCategories);
@@ -181,10 +190,10 @@ export function StudentCard({
             </p>
             {student.cohortYear && (
               <p className="mt-1 text-xs text-gray-500">
-                {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, student.status, student.track)}
+                {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, status, student.track)}
               </p>
             )}
-            {isGraduatedStatus(student.status) && student.graduationYear && (
+            {isGraduatedStatus(status) && student.graduationYear && (
               <p className="mt-1 text-xs text-gray-500">
                 {he.studentCard.graduationYear}: {student.graduationYear}
               </p>
@@ -224,9 +233,9 @@ export function StudentCard({
           </div>
         </button>
         <select
-          value={student.status}
+          value={status}
           onChange={(e) => changeStatus(e.target.value as StudentStatus)}
-          className={`shrink-0 rounded-full border-0 px-3 py-1 text-xs font-semibold ${STATUS_STYLES[student.status]}`}
+          className={`shrink-0 rounded-full border-0 px-3 py-1 text-xs font-semibold ${STATUS_STYLES[status]}`}
         >
           {STUDENT_STATUS_VALUES.map((s) => (
             <option key={s} value={s}>

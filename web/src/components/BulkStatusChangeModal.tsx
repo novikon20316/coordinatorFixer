@@ -36,27 +36,26 @@ export function BulkStatusChangeModal({
 }) {
   const [status, setStatus] = useState<StudentStatus>(StudentStatus.GRADUATED_ELIGIBLE);
   const [graduationYear, setGraduationYear] = useState<HebrewYear>(CURRENT_HEBREW_YEAR);
-  const [saving, setSaving] = useState(false);
 
-  async function handleSave() {
-    setSaving(true);
+  function handleSave() {
     const update: StatusUpdate = { status, graduationYear: isGraduatedStatus(status) ? graduationYear : undefined };
+    students.forEach((student) => onStatusChange(student.id, update));
+    onClose();
     const failures: string[] = [];
-    await Promise.all(
+    Promise.all(
       students.map(async (student) => {
         try {
           await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify(update) });
-          onStatusChange(student.id, update);
         } catch {
           failures.push(student.fullName);
+          onStatusChange(student.id, { status: student.status, graduationYear: student.graduationYear });
         }
       })
-    );
-    setSaving(false);
-    onClose();
-    if (failures.length > 0) {
-      window.alert(`${he.common.error}: ${failures.join(", ")}`);
-    }
+    ).then(() => {
+      if (failures.length > 0) {
+        window.alert(`${he.common.error}: ${failures.join(", ")}`);
+      }
+    });
   }
 
   return (
@@ -102,15 +101,13 @@ export function BulkStatusChangeModal({
         <div className="mt-5 flex justify-end gap-3">
           <button
             onClick={onClose}
-            disabled={saving}
             className="rounded-md px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
           >
             {he.common.cancel}
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
           >
             {he.common.save}
           </button>
