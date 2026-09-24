@@ -9,6 +9,7 @@ import {
   StudentUpdateInput,
 } from "@admin-coordinator/shared";
 import { db } from "../config/firebase";
+import { listCurriculumCategoryRules } from "./curriculumRules.service";
 
 const COLLECTION = "students";
 
@@ -67,11 +68,15 @@ function normalizeStatusForTrack<T extends { track?: StudentTrack; status?: Stud
 export async function createStudent(input: StudentCreateInput): Promise<Student> {
   const firestore = ensureDb();
   const now = new Date().toISOString();
+  // Any admin-created CurriculumCategoryRule effective for this student's own
+  // cohort (see the תיקוני תוכנית לימודים page) must already apply the moment
+  // they're created, not just to students an admin bulk-corrects afterward.
+  const rules = await listCurriculumCategoryRules(input.faculty);
   const ref = await firestore.collection(COLLECTION).add({
     // Callers (the quick-add bar, the bulk importer) don't know this
     // department's course/milestone catalog - seed it here so every new
     // student starts with the right checklist instead of an empty one.
-    courseCategories: buildDefaultCourseCategories(input.faculty),
+    courseCategories: buildDefaultCourseCategories(input.faculty, input.cohortYear, rules),
     milestones: buildDefaultMilestones(input.faculty),
     ...normalizeStatusForTrack(input),
     createdAt: now,

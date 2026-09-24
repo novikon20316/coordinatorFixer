@@ -21,7 +21,8 @@
  * milestone list here too.
  */
 
-import { HebrewYear } from "./hebrewYear";
+import { HEBREW_YEAR_VALUES, HebrewYear } from "./hebrewYear";
+import { CurriculumCategoryRule } from "../types/curriculumRule";
 
 /** The department's 7 required core-curriculum courses (fixed catalog,
  *  checkbox-style), in Hebrew - matches the course names as the department's
@@ -66,6 +67,30 @@ export function canonicalCoreCourseName(name: string): string {
     DATA_SCIENCE_CORE_CURRICULUM_ALIASES[c].includes(name)
   );
   return canonical ?? name;
+}
+
+/** The department's core-curriculum catalog for a student who started in
+ *  `cohortYear`, after applying any admin-created CurriculumCategoryRule that
+ *  moved a course out of core_curriculum effective from that cohort onward -
+ *  a cohort before a rule's effectiveFromCohort still sees the course as part
+ *  of the fixed catalog, matching how dataScienceCreditRequirements treats
+ *  "whichever curriculum was in force when they started" as permanent for
+ *  that cohort. `cohortYear` undefined (no cohort set yet) gets the full,
+ *  unmodified catalog, same convention as dataScienceCreditRequirements. */
+export function dataScienceCoreCurriculumCourses(
+  cohortYear: HebrewYear | undefined,
+  rules: CurriculumCategoryRule[] = []
+): string[] {
+  if (!cohortYear) return DATA_SCIENCE_CORE_CURRICULUM_COURSES;
+  const cohortIndex = HEBREW_YEAR_VALUES.indexOf(cohortYear);
+  const movedOut = new Set(
+    rules
+      .filter(
+        (r) => r.fromCategory === "core_curriculum" && HEBREW_YEAR_VALUES.indexOf(r.effectiveFromCohort) <= cohortIndex
+      )
+      .map((r) => r.course)
+  );
+  return DATA_SCIENCE_CORE_CURRICULUM_COURSES.filter((c) => !movedOut.has(c));
 }
 
 /**

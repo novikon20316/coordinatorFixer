@@ -2,15 +2,16 @@ import { Faculty, isGraduatedStatus, StudentStatus, StudentTrack } from "../cons
 import {
   canonicalCoreCourseName,
   DATA_SCIENCE_CORE_CURRICULUM_ALIASES,
-  DATA_SCIENCE_CORE_CURRICULUM_COURSES,
   DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS,
   DATA_SCIENCE_PROJECT_MILESTONES,
+  dataScienceCoreCurriculumCourses,
   dataScienceCreditRequirements,
   DataScienceCreditRequirements,
 } from "../constants/dataScienceCurriculum";
 import { activeYearOfStudy, CURRENT_HEBREW_YEAR, HebrewYear, yearOfStudy } from "../constants/hebrewYear";
 import { he } from "../i18n/he";
 import { CourseCompletionCategory, CourseCompletionEntry, MilestoneProgress, SemesterRecord, Student } from "../types/student";
+import { CurriculumCategoryRule } from "../types/curriculumRule";
 
 /** Canonical display label for each fixed category key - the source of
  *  truth for what a category is called today. A category's own `label`
@@ -33,21 +34,39 @@ export function courseCategoryLabel(category: Pick<CourseCompletionCategory, "ke
   return CATEGORY_LABELS[category.key] ?? category.label;
 }
 
+/** Same lookup as courseCategoryLabel, for a bare category key rather than a
+ *  whole category object - used by UI that lets an admin pick a category by
+ *  key before any entry/category object exists (e.g. the curriculum
+ *  correction tool's category-reassignment form). */
+export function courseCategoryKeyLabel(key: string): string {
+  return CATEGORY_LABELS[key] ?? key;
+}
+
 /** Builds a fresh course-completion checklist for a newly created student.
  *  Only Data Science has a known catalog today (see dataScienceCurriculum.ts)
  *  - other faculties get no categories, same as before this feature existed.
  *  No requiredCredits is baked in here - each category's target varies by
  *  the student's cohort year (see resolveCategoryRequiredCredits below), so
- *  it's resolved fresh every time it's needed instead of stored. */
-export function buildDefaultCourseCategories(faculty: Faculty): CourseCompletionCategory[] {
+ *  it's resolved fresh every time it's needed instead of stored. `cohortYear`
+ *  and `rules` (admin-created CurriculumCategoryRule entries) determine which
+ *  courses are actually in the core-curriculum catalog for this student - see
+ *  dataScienceCoreCurriculumCourses. Both are optional and default to "no
+ *  rules applied" (the original, unfiltered catalog), so every existing
+ *  caller that only ever cared about the faculty keeps working unchanged. */
+export function buildDefaultCourseCategories(
+  faculty: Faculty,
+  cohortYear?: HebrewYear,
+  rules: CurriculumCategoryRule[] = []
+): CourseCompletionCategory[] {
   if (faculty !== Faculty.DATA_SCIENCE) return [];
+  const coreCurriculumCourses = dataScienceCoreCurriculumCourses(cohortYear, rules);
   return [
     {
       key: "core_curriculum",
       label: CATEGORY_LABELS.core_curriculum,
       fixedCatalog: true,
-      requiredCount: DATA_SCIENCE_CORE_CURRICULUM_COURSES.length,
-      entries: DATA_SCIENCE_CORE_CURRICULUM_COURSES.map((name) => ({ name, passed: false })),
+      requiredCount: coreCurriculumCourses.length,
+      entries: coreCurriculumCourses.map((name) => ({ name, passed: false })),
     },
     {
       key: "core",
@@ -307,6 +326,70 @@ export function restoreCoreCurriculumCourseFromHistory(
       : c
   );
   return { categories: next, restored: true, grade };
+}
+
+export interface CourseCategoryMove {
+  categories: CourseCompletionCategory[];
+  /** A matching entry was found in `fromKey` and moved to `toKey`. */
+  moved: boolean;
+}
+
+/** Moves one existing course-completion entry from one category to another,
+ *  preserving its grade/credits/passed exactly as recorded - unlike
+ *  removeCoreCurriculumCourse, nothing is discarded here, so there's no
+ *  grade-safety check to make: the entry's real data just relocates. Backs
+ *  the curriculum-corrections page's category-reassignment tool, which
+ *  bulk-applies a CurriculumCategoryRule to students who already have a
+ *  stored entry for the moved course (a student created after the rule
+ *  existed never has one to move, since dataScienceCoreCurriculumCourses
+ *  already left it out of their core_curriculum catalog at creation time).
+ *  Matches a core_curriculum entry alias-aware (canonicalCoreCourseName,
+ *  same as removeCoreCurriculumCourse); a core/elective entry matches by
+ *  exact name, since those categories have no catalog to canonicalize
+ *  against. A no-op (`moved: false`, same `categories` reference) when no
+ *  matching entry exists in `fromKey`. Mirrors StudentCard.tsx's removeRow:
+ *  moving one of a fixed catalog's own required rows (index < requiredCount)
+ *  lowers that category's requiredCount by one; an "extra" entry appended
+ *  beyond it doesn't. The target category's requiredCount is never changed -
+ *  core/elective's required course *count* is a fixed department policy
+ *  (DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS), independent of how many entries
+ *  happen to be typed in. */
+export function moveCourseCategoryEntry(
+  categories: CourseCompletionCategory[],
+  courseName: string,
+  fromKey: string,
+  toKey: string
+): CourseCategoryMove {
+  const fromCategory = categories.find((c) => c.key === fromKey);
+  if (!fromCategory) return { categories, moved: false };
+
+  const isCoreCurriculum = fromKey === "core_curriculum";
+  const canonical = isCoreCurriculum ? canonicalCoreCourseName(courseName) : courseName;
+  const aliases = isCoreCurriculum ? [canonical, ...(DATA_SCIENCE_CORE_CURRICULUM_ALIASES[canonical] ?? [])] : [canonical];
+  const matches = (name: string) => (isCoreCurriculum ? aliases.includes(canonicalCoreCourseName(name)) : name === canonical);
+
+  const entryIndex = fromCategory.entries.findIndex((e) => matches(e.name));
+  if (entryIndex === -1) return { categories, moved: false };
+
+  const entry = fromCategory.entries[entryIndex];
+  const isFixedSlot = fromCategory.fixedCatalog && entryIndex < fromCategory.requiredCount;
+  const movedEntry = isCoreCurriculum ? { ...entry, name: canonical } : entry;
+
+  const next = categories.map((c) => {
+    if (c.key === fromKey) {
+      return {
+        ...c,
+        entries: c.entries.filter((_, i) => i !== entryIndex),
+        requiredCount: isFixedSlot ? c.requiredCount - 1 : c.requiredCount,
+      };
+    }
+    if (c.key === toKey) {
+      return { ...c, entries: [...c.entries, movedEntry] };
+    }
+    return c;
+  });
+
+  return { categories: next, moved: true };
 }
 
 /** Label for a מחזור (cohort year) option that also names the academic year

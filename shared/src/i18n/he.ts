@@ -107,6 +107,20 @@ export const he = {
     restoreSectionDescription:
       "עבור תלמיד/ה שהמקצוע הוסר לו/ה מ\"מקצועות חובה\" אך יש לו/ה ציון אמיתי בהיסטוריה האקדמית שטרם סונכרן לרשימת הדרישות - מחזיר את המקצוע לרשימה עם הציון שנמצא, ומעלה את הדרישה הכוללת של הקטגוריה בהתאם.",
     restoreResultSummary: "שוחזרו {count} תלמידים",
+    moveSectionTitle: "העברת מקצוע בין קטגוריות",
+    moveSectionDescription:
+      "מגדיר שמקצוע מסוים שייך מעתה לקטגוריה אחרת, החל ממחזור מסוים ואילך - נשמר כקביעה קבועה (תלמיד/ה חדש/ה מאותו מחזור ואילך ייבנה/תיבנה לפי הקטגוריה החדשה מלכתחילה) וגם מחיל מיידית על תלמידים קיימים באותם מחזורים שיש להם/ן רישום של המקצוע.",
+    moveFromCategoryLabel: "מקטגוריה",
+    moveToCategoryLabel: "לקטגוריה",
+    moveCourseFreeTextLabel: "שם המקצוע",
+    moveEffectiveFromLabel: "החל ממחזור",
+    moveResultSummary: "המקצוע הועבר עבור {count} תלמידים",
+    saveRuleOnly: "שמור כלל",
+    ruleSavedNoStudents: "הכלל נשמר - אין כרגע תלמידים קיימים מושפעים",
+    existingRulesTitle: "כללי העברה קיימים",
+    noExistingRules: "לא הוגדרו כללי העברה",
+    deleteRule: "מחק כלל",
+    ruleSummary: '"{course}": {from} ← {to}, החל ממחזור {cohort}',
   },
 
   dashboard: {

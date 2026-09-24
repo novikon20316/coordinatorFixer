@@ -5,6 +5,7 @@ export * from "./types/student";
 export * from "./types/user";
 export * from "./types/import";
 export * from "./types/candidate";
+export * from "./types/curriculumRule";
 export * from "./i18n/he";
 export * from "./utils/password";
 export * from "./utils/studentDefaults";
