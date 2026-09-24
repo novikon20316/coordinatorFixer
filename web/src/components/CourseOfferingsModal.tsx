@@ -20,6 +20,7 @@ export function CourseOfferingsModal({
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg">
         <div className="mb-4">
           <h2 className="text-lg font-bold text-gray-900">{course.courseName}</h2>
+          {course.lecturer && <p className="text-sm text-gray-600">{course.lecturer}</p>}
           <p className="text-xs text-gray-500">{he.history.courseOfferingsTitle}</p>
         </div>
 

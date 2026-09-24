@@ -66,12 +66,16 @@ export function buildCourseHistory(students: Student[]): CourseHistoryGroup[] {
   return Array.from(groups.values()).sort((a, b) => a.courseName.localeCompare(b.courseName, "he"));
 }
 
-/** One course name, folding together every מחזור/semester it was actually
- *  taught in (its CourseHistoryGroup "classes") - the same course shows once
- *  in the History tab regardless of how many times it recurs, and a
- *  coordinator drills into a specific offering to see who took it. */
+/** One course name as taught by one lecturer, folding together every
+ *  מחזור/semester it was actually taught in (its CourseHistoryGroup
+ *  "classes") - a coordinator drills into a specific offering to see who
+ *  took it. A course name taught by more than one lecturer over the years
+ *  splits into a separate CourseHistoryCourse per lecturer (see
+ *  groupCoursesByName) rather than merging them into one row, since they're
+ *  effectively different classes that happen to share a name. */
 export interface CourseHistoryCourse {
   courseName: string;
+  lecturer?: string;
   offerings: CourseHistoryGroup[];
   studentCount: number;
 }
@@ -79,26 +83,33 @@ export interface CourseHistoryCourse {
 const SEMESTER_ORDER: Record<"A" | "B", number> = { A: 0, B: 1 };
 
 /** Folds the flat (course, cohort year, semester) class list from
- *  buildCourseHistory into one entry per distinct course name, most recent
- *  offering first. */
+ *  buildCourseHistory into one entry per (course name, lecturer) pair, most
+ *  recent offering first. Splitting on lecturer as well as name means a
+ *  course taught by two different lecturers across its history shows as two
+ *  separate rows in the History tab instead of one row with both names. */
 export function groupCoursesByName(groups: CourseHistoryGroup[]): CourseHistoryCourse[] {
-  const byName = new Map<string, CourseHistoryGroup[]>();
+  const byKey = new Map<string, CourseHistoryGroup[]>();
   for (const group of groups) {
-    const offerings = byName.get(group.courseName);
+    const key = `${group.courseName}|${group.lecturer ?? ""}`;
+    const offerings = byKey.get(key);
     if (offerings) offerings.push(group);
-    else byName.set(group.courseName, [group]);
+    else byKey.set(key, [group]);
   }
 
-  return Array.from(byName.entries())
-    .map(([courseName, offerings]) => ({
-      courseName,
+  return Array.from(byKey.values())
+    .map((offerings) => ({
+      courseName: offerings[0].courseName,
+      lecturer: offerings[0].lecturer,
       offerings: [...offerings].sort((a, b) => {
         const yearDiff = HEBREW_YEAR_VALUES.indexOf(b.hebrewYear) - HEBREW_YEAR_VALUES.indexOf(a.hebrewYear);
         return yearDiff !== 0 ? yearDiff : SEMESTER_ORDER[b.semester] - SEMESTER_ORDER[a.semester];
       }),
       studentCount: offerings.reduce((sum, o) => sum + o.entries.length, 0),
     }))
-    .sort((a, b) => a.courseName.localeCompare(b.courseName, "he"));
+    .sort((a, b) => {
+      const nameDiff = a.courseName.localeCompare(b.courseName, "he");
+      return nameDiff !== 0 ? nameDiff : (a.lecturer ?? "").localeCompare(b.lecturer ?? "", "he");
+    });
 }
 
 /**

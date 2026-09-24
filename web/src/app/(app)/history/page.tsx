@@ -61,6 +61,7 @@ export default function HistoryPage() {
           <thead className="bg-gray-50 text-xs text-gray-500">
             <tr>
               <th className="px-4 py-2 text-right font-medium">{he.history.courseName}</th>
+              <th className="px-4 py-2 text-right font-medium">{he.history.lecturer}</th>
               <th className="px-4 py-2 text-right font-medium">{he.history.offeringsCount}</th>
               <th className="px-4 py-2 text-right font-medium">{he.history.studentsCount}</th>
             </tr>
@@ -69,6 +70,7 @@ export default function HistoryPage() {
             {courses.map((c) => (
               <tr key={c.courseName} onClick={() => setSelectedCourse(c)} className="cursor-pointer hover:bg-gray-50">
                 <td className="px-4 py-2 font-medium text-gray-900">{c.courseName}</td>
+                <td className="px-4 py-2 text-gray-600">{c.lecturer || "—"}</td>
                 <td className="px-4 py-2 text-gray-600">{c.offerings.length}</td>
                 <td className="px-4 py-2 text-gray-600">{c.studentCount}</td>
               </tr>
