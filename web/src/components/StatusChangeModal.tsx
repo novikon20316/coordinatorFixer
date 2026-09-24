@@ -10,19 +10,30 @@ import {
   isGraduatedStatus,
   Student,
   STUDENT_STATUS_VALUES,
+  STUDENT_TRACK_VALUES,
   StudentStatus,
+  StudentTrack,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 
-export type StatusUpdate = { status: StudentStatus; graduationYear?: HebrewYear };
+export type StatusUpdate = {
+  status: StudentStatus;
+  graduationYear?: HebrewYear;
+  track: StudentTrack;
+  wasEverCompletion?: boolean;
+};
 
 /**
- * Lets any role (admin or coordinator) set a student's status directly from
- * the שינוי סטטוס list. Also asks for the Hebrew year they actually
+ * Lets any role (admin or coordinator) set a student's status and track
+ * directly from the שינוי סטטוס list - track is included alongside status
+ * because moving a student off בהשלמה (COMPLETION) is how a coordinator
+ * records that they finished their השלמות (see completionCourses.ts's doc
+ * comment), and the server silently keeps status at NOT_REGULAR for as long
+ * as track stays COMPLETION (see normalizeStatusForTrack in
+ * students.service.ts). Also asks for the Hebrew year they actually
  * finished whenever the new status is one of the two graduated ones (see
  * isGraduatedStatus) - the dashboard's graduates tab needs the real
- * graduation year, not just the fact that it happened. PATCHes `status` and,
- * when graduated, `graduationYear`.
+ * graduation year, not just the fact that it happened.
  */
 export function StatusChangeModal({
   student,
@@ -36,13 +47,27 @@ export function StatusChangeModal({
   onStatusChange: (studentId: string, update: StatusUpdate) => void;
 }) {
   const [status, setStatus] = useState<StudentStatus>(student.status);
+  const [track, setTrack] = useState<StudentTrack>(student.track);
   const [graduationYear, setGraduationYear] = useState<HebrewYear>(
     student.graduationYear ?? student.cohortYear ?? CURRENT_HEBREW_YEAR
   );
 
   function handleSave() {
-    const previous: StatusUpdate = { status: student.status, graduationYear: student.graduationYear };
-    const update: StatusUpdate = { status, graduationYear: isGraduatedStatus(status) ? graduationYear : undefined };
+    const previous: StatusUpdate = {
+      status: student.status,
+      graduationYear: student.graduationYear,
+      track: student.track,
+      wasEverCompletion: student.wasEverCompletion,
+    };
+    const update: StatusUpdate = {
+      status,
+      graduationYear: isGraduatedStatus(status) ? graduationYear : undefined,
+      track,
+      // Sticky historical flag for the Reports page's "האם היה בהשלמה" column
+      // - once true, stays true even after track moves off COMPLETION (same
+      // rule as StudentDetailModal's track editor).
+      wasEverCompletion: student.wasEverCompletion || student.track === StudentTrack.COMPLETION || track === StudentTrack.COMPLETION,
+    };
     onStatusChange(student.id, update);
     onClose();
     apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify(update) }).catch((err) => {
@@ -58,6 +83,21 @@ export function StatusChangeModal({
         <p className="mb-4 text-xs text-gray-500">{he.changeStatus.modalTitle}</p>
 
         <label className="flex flex-col gap-1 text-xs text-gray-600">
+          {he.studentForm.track}
+          <select
+            value={track}
+            onChange={(e) => setTrack(e.target.value as StudentTrack)}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            {STUDENT_TRACK_VALUES.map((t) => (
+              <option key={t} value={t}>
+                {he.dashboard.tabs[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="mt-3 flex flex-col gap-1 text-xs text-gray-600">
           {he.changeStatus.newStatus}
           <select
             value={status}

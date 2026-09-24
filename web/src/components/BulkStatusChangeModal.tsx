@@ -37,18 +37,35 @@ export function BulkStatusChangeModal({
   const [status, setStatus] = useState<StudentStatus>(StudentStatus.GRADUATED_ELIGIBLE);
   const [graduationYear, setGraduationYear] = useState<HebrewYear>(CURRENT_HEBREW_YEAR);
 
+  // Track is left as each student's own current value, never one shared
+  // choice across the whole filtered list - unlike StatusChangeModal, where
+  // a coordinator is looking at one student and can decide to move them off
+  // בהשלמה at the same time as changing status.
+  function updateFor(student: Student): StatusUpdate {
+    return {
+      status,
+      graduationYear: isGraduatedStatus(status) ? graduationYear : undefined,
+      track: student.track,
+      wasEverCompletion: student.wasEverCompletion,
+    };
+  }
+
   function handleSave() {
-    const update: StatusUpdate = { status, graduationYear: isGraduatedStatus(status) ? graduationYear : undefined };
-    students.forEach((student) => onStatusChange(student.id, update));
+    students.forEach((student) => onStatusChange(student.id, updateFor(student)));
     onClose();
     const failures: string[] = [];
     Promise.all(
       students.map(async (student) => {
         try {
-          await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify(update) });
+          await apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify(updateFor(student)) });
         } catch {
           failures.push(student.fullName);
-          onStatusChange(student.id, { status: student.status, graduationYear: student.graduationYear });
+          onStatusChange(student.id, {
+            status: student.status,
+            graduationYear: student.graduationYear,
+            track: student.track,
+            wasEverCompletion: student.wasEverCompletion,
+          });
         }
       })
     ).then(() => {
