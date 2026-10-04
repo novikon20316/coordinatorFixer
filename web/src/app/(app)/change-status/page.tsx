@@ -8,6 +8,7 @@ import {
   HEBREW_YEAR_VALUES,
   he,
   isDueForGraduationReview,
+  isGraduatedStatus,
   Student,
   STUDENT_TRACK_VALUES,
   studentCohortYearLabel,
@@ -146,7 +147,10 @@ export default function ChangeStatusPage() {
                   {s.idNumber || "—"}
                 </td>
                 <td className="px-4 py-2 text-gray-600">
-                  {s.cohortYear ? studentCohortYearLabel(s.cohortYear, s.status, s.track) : "—"}
+                  {(() => {
+                    const displayYear = isGraduatedStatus(s.status) && s.graduationYear ? s.graduationYear : s.cohortYear;
+                    return displayYear ? studentCohortYearLabel(displayYear, s.status, s.track) : "—";
+                  })()}
                 </td>
                 <td className="px-4 py-2 text-gray-600">{he.dashboard.tabs[s.track]}</td>
                 <td className="px-4 py-2 text-gray-600">
