@@ -14,18 +14,16 @@
 export enum StudentStatus {
   ACTIVE = "ACTIVE", // פעיל
   CANCELED_REGISTRATION = "CANCELED_REGISTRATION", // ביטל הרשמה
-  INTERNAL_MAPPING = "INTERNAL_MAPPING", // מיפוי פנימי
   NOT_REGULAR = "NOT_REGULAR", // לא מן המניין
   CONDITIONAL = "CONDITIONAL", // על תנאי
   ON_LEAVE = "ON_LEAVE", // בחופשה
-  GRADUATED_ELIGIBLE = "GRADUATED_ELIGIBLE", // מוסמך סיים טופס טיולים וזכאי לתואר
-  GRADUATED_PENDING = "GRADUATED_PENDING", // מוסמך/כת בטופס טיולים לקראת זכאות לתואר
+  GRADUATED_ELIGIBLE = "GRADUATED_ELIGIBLE", // מוסמך
+  GRADUATED_PENDING = "GRADUATED_PENDING", // טופס טיולים
 }
 
 export const STUDENT_STATUS_VALUES: StudentStatus[] = [
   StudentStatus.ACTIVE,
   StudentStatus.CANCELED_REGISTRATION,
-  StudentStatus.INTERNAL_MAPPING,
   StudentStatus.NOT_REGULAR,
   StudentStatus.CONDITIONAL,
   StudentStatus.ON_LEAVE,

@@ -33,7 +33,6 @@ import { ProjectProgressSyncModal } from "./ProjectProgressSyncModal";
 const STATUS_STYLES: Record<StudentStatus, string> = {
   [StudentStatus.ACTIVE]: "bg-green-100 text-green-800",
   [StudentStatus.CANCELED_REGISTRATION]: "bg-gray-200 text-gray-700",
-  [StudentStatus.INTERNAL_MAPPING]: "bg-slate-200 text-slate-700",
   [StudentStatus.NOT_REGULAR]: "bg-orange-100 text-orange-800",
   [StudentStatus.CONDITIONAL]: "bg-yellow-100 text-yellow-800",
   [StudentStatus.ON_LEAVE]: "bg-blue-100 text-blue-800",

@@ -396,12 +396,11 @@ export const he = {
   status: {
     [StudentStatus.ACTIVE]: "פעיל",
     [StudentStatus.CANCELED_REGISTRATION]: "ביטל הרשמה",
-    [StudentStatus.INTERNAL_MAPPING]: "מיפוי פנימי",
     [StudentStatus.NOT_REGULAR]: "לא מן המניין",
     [StudentStatus.CONDITIONAL]: "על תנאי",
     [StudentStatus.ON_LEAVE]: "בחופשה",
-    [StudentStatus.GRADUATED_ELIGIBLE]: "מוסמך סיים טופס טיולים וזכאי לתואר",
-    [StudentStatus.GRADUATED_PENDING]: "מוסמך/כת בטופס טיולים לקראת זכאות לתואר",
+    [StudentStatus.GRADUATED_ELIGIBLE]: "מוסמך",
+    [StudentStatus.GRADUATED_PENDING]: "טופס טיולים",
   } as Record<StudentStatus, string>,
 
   // Meanings not yet provided for the 8-value status list above - left
@@ -410,7 +409,6 @@ export const he = {
   statusDescription: {
     [StudentStatus.ACTIVE]: "",
     [StudentStatus.CANCELED_REGISTRATION]: "",
-    [StudentStatus.INTERNAL_MAPPING]: "",
     [StudentStatus.NOT_REGULAR]: "",
     [StudentStatus.CONDITIONAL]: "",
     [StudentStatus.ON_LEAVE]: "",
