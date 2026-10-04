@@ -359,6 +359,7 @@ export const he = {
     bulkUpdateButton: "עדכון סטטוס לכל הרשימה ({count})",
     bulkModalTitle: "עדכון סטטוס עבור {count} תלמידים",
     bulkModalWarning: "הפעולה תעדכן את הסטטוס של כל התלמידים המוצגים ברשימה הנוכחית.",
+    columnFilterApply: "סנן",
   },
 
   history: {

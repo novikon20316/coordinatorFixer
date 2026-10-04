@@ -10,17 +10,52 @@ import {
   isDueForGraduationReview,
   isGraduatedStatus,
   Student,
+  STUDENT_STATUS_VALUES,
   STUDENT_TRACK_VALUES,
   studentCohortYearLabel,
+  StudentStatus,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
 import { StatusChangeModal, StatusUpdate } from "../../../components/StatusChangeModal";
 import { BulkStatusChangeModal } from "../../../components/BulkStatusChangeModal";
+import { ColumnFilterPopover } from "../../../components/ColumnFilterPopover";
 
 function isDue(s: Student): boolean {
   return !!s.cohortYear && isDueForGraduationReview(s.cohortYear, s.status, s.track);
+}
+
+// The מצב הרשמה column's own three-way state: a graduated student (either of
+// the two isGraduatedStatus statuses) always shows as "GRADUATED" here
+// regardless of their underlying track, since once certified the track they
+// studied under is no longer the relevant fact for this column. Reuses
+// he.status[GRADUATED_ELIGIBLE] ("מוסמך") for the label rather than
+// duplicating the string.
+type RegistrationState = StudentTrack | "GRADUATED";
+
+function registrationStateOf(s: Student): RegistrationState {
+  return isGraduatedStatus(s.status) ? "GRADUATED" : s.track;
+}
+
+function registrationStateLabel(state: RegistrationState): string {
+  return state === "GRADUATED" ? he.status[StudentStatus.GRADUATED_ELIGIBLE] : he.dashboard.tabs[state];
+}
+
+const REGISTRATION_STATE_OPTIONS: { value: RegistrationState; label: string }[] = [
+  { value: StudentTrack.REGULAR, label: he.dashboard.tabs[StudentTrack.REGULAR] },
+  { value: StudentTrack.COMPLETION, label: he.dashboard.tabs[StudentTrack.COMPLETION] },
+  { value: "GRADUATED", label: he.status[StudentStatus.GRADUATED_ELIGIBLE] },
+];
+
+const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = STUDENT_STATUS_VALUES.map((s) => ({
+  value: s,
+  label: he.status[s],
+}));
+
+function sortIndicator(dir: "asc" | "desc" | null) {
+  if (!dir) return null;
+  return <span className="ms-1 inline-block">{dir === "asc" ? "▲" : "▼"}</span>;
 }
 
 /**
@@ -40,6 +75,11 @@ export default function ChangeStatusPage() {
   const [dueOnly, setDueOnly] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [nameSort, setNameSort] = useState<"asc" | "desc" | null>(null);
+  const [cohortSort, setCohortSort] = useState<"asc" | "desc" | null>(null);
+  const [registrationStateFilter, setRegistrationStateFilter] = useState<RegistrationState[]>([]);
+  const [statusFilter, setStatusFilter] = useState<StudentStatus[]>([]);
+  const [openColumnFilter, setOpenColumnFilter] = useState<"registrationState" | "status" | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeStudents(faculty, setStudents);
@@ -50,16 +90,53 @@ export default function ChangeStatusPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return students
+    const rows = students
       .filter((s) => !trackFilter || s.track === trackFilter)
       .filter((s) => !cohortFilter || s.cohortYear === cohortFilter)
       .filter((s) => !dueOnly || isDue(s))
       .filter((s) => !q || s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
-      .sort((a, b) => a.fullName.localeCompare(b.fullName, "he"));
-  }, [students, trackFilter, cohortFilter, dueOnly, search]);
+      .filter((s) => registrationStateFilter.length === 0 || registrationStateFilter.includes(registrationStateOf(s)))
+      .filter((s) => statusFilter.length === 0 || statusFilter.includes(s.status));
+
+    if (nameSort) {
+      rows.sort((a, b) => (nameSort === "asc" ? 1 : -1) * a.fullName.localeCompare(b.fullName, "he"));
+    } else if (cohortSort) {
+      rows.sort((a, b) => {
+        const ai = a.cohortYear ? HEBREW_YEAR_VALUES.indexOf(a.cohortYear) : -1;
+        const bi = b.cohortYear ? HEBREW_YEAR_VALUES.indexOf(b.cohortYear) : -1;
+        return (cohortSort === "asc" ? 1 : -1) * (ai - bi);
+      });
+    } else {
+      rows.sort((a, b) => a.fullName.localeCompare(b.fullName, "he"));
+    }
+
+    return rows;
+  }, [students, trackFilter, cohortFilter, dueOnly, search, registrationStateFilter, statusFilter, nameSort, cohortSort]);
 
   function handleStatusChange(studentId: string, update: StatusUpdate) {
     setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, ...update } : s)));
+  }
+
+  function toggleNameSort() {
+    setCohortSort(null);
+    setNameSort((prev) => (prev === "asc" ? "desc" : "asc"));
+  }
+
+  function toggleCohortSort() {
+    setNameSort(null);
+    setCohortSort((prev) => (prev === "asc" ? "desc" : "asc"));
+  }
+
+  function applyRegistrationStateFilter(values: RegistrationState[]) {
+    setRegistrationStateFilter(values);
+    setNameSort(null);
+    setCohortSort(null);
+  }
+
+  function applyStatusFilter(values: StudentStatus[]) {
+    setStatusFilter(values);
+    setNameSort(null);
+    setCohortSort(null);
   }
 
   return (
@@ -132,11 +209,67 @@ export default function ChangeStatusPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-500">
             <tr>
-              <th className="px-4 py-2 text-right font-medium">{he.table.columns.fullName}</th>
+              <th
+                onClick={toggleNameSort}
+                className="cursor-pointer select-none px-4 py-2 text-right font-medium hover:text-gray-700"
+              >
+                {he.table.columns.fullName}
+                {sortIndicator(nameSort)}
+              </th>
               <th className="px-4 py-2 text-right font-medium">{he.table.columns.idNumber}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.table.columns.cohortYear}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.studentForm.track}</th>
-              <th className="px-4 py-2 text-right font-medium">{he.table.columns.status}</th>
+              <th
+                onClick={toggleCohortSort}
+                className="cursor-pointer select-none px-4 py-2 text-right font-medium hover:text-gray-700"
+              >
+                {he.table.columns.cohortYear}
+                {sortIndicator(cohortSort)}
+              </th>
+              <th className="relative px-4 py-2 text-right font-medium">
+                <button
+                  type="button"
+                  data-column-filter-trigger
+                  onClick={() => setOpenColumnFilter((prev) => (prev === "registrationState" ? null : "registrationState"))}
+                  className="flex w-full cursor-pointer items-center justify-end gap-1 font-medium hover:text-gray-700"
+                >
+                  {he.studentForm.track}
+                  {registrationStateFilter.length > 0 && (
+                    <span className="rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700">
+                      {registrationStateFilter.length}
+                    </span>
+                  )}
+                </button>
+                {openColumnFilter === "registrationState" && (
+                  <ColumnFilterPopover
+                    options={REGISTRATION_STATE_OPTIONS}
+                    selected={registrationStateFilter}
+                    onApply={applyRegistrationStateFilter}
+                    onClose={() => setOpenColumnFilter(null)}
+                  />
+                )}
+              </th>
+              <th className="relative px-4 py-2 text-right font-medium">
+                <button
+                  type="button"
+                  data-column-filter-trigger
+                  onClick={() => setOpenColumnFilter((prev) => (prev === "status" ? null : "status"))}
+                  className="flex w-full cursor-pointer items-center justify-end gap-1 font-medium hover:text-gray-700"
+                >
+                  {he.table.columns.status}
+                  {statusFilter.length > 0 && (
+                    <span className="rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-700">
+                      {statusFilter.length}
+                    </span>
+                  )}
+                </button>
+                {openColumnFilter === "status" && (
+                  <ColumnFilterPopover
+                    options={STATUS_OPTIONS}
+                    selected={statusFilter}
+                    onApply={applyStatusFilter}
+                    onClose={() => setOpenColumnFilter(null)}
+                  />
+                )}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -152,7 +285,7 @@ export default function ChangeStatusPage() {
                     return displayYear ? studentCohortYearLabel(displayYear, s.status, s.track) : "—";
                   })()}
                 </td>
-                <td className="px-4 py-2 text-gray-600">{he.dashboard.tabs[s.track]}</td>
+                <td className="px-4 py-2 text-gray-600">{registrationStateLabel(registrationStateOf(s))}</td>
                 <td className="px-4 py-2 text-gray-600">
                   {he.status[s.status]}
                   {isDue(s) && (
