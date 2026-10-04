@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   buildDefaultCourseCategories,
   buildDefaultMilestones,
@@ -93,6 +93,12 @@ export function StudentCard({
   const [finalGrade, setFinalGrade] = useState(student.finalGrade != null ? String(student.finalGrade) : "");
   const [gpa, setGpa] = useState(student.gpa != null ? String(student.gpa) : "");
   const [status, setStatus] = useState<StudentStatus>(student.status);
+  // Unlike milestones/courseCategories above, status can legitimately change
+  // from outside this card (the Change Status screen, bulk status change) -
+  // resync it from the live doc instead of only from this card's own PATCH.
+  useEffect(() => {
+    setStatus(student.status);
+  }, [student.status]);
   const { openDetail } = useDetailPanels();
   const [showMissing, setShowMissing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
