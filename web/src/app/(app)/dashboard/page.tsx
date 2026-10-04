@@ -223,11 +223,17 @@ export default function DashboardPage() {
           className="rounded-md border border-gray-300 px-3 py-2 text-sm"
         >
           <option value="">{he.dashboard.cohortFilterAll}</option>
-          {[...HEBREW_YEAR_VALUES].reverse().map((y) => (
-            <option key={y} value={y}>
-              {cohortYearOptionLabel(y)}
-            </option>
-          ))}
+          {/* תשפ"ג excluded - the system's first tracked מחזור isn't a
+              meaningful filter choice, same reasoning as excluding it from
+              the graduation-year picker (see GRADUATION_YEAR_VALUES). */}
+          {[...HEBREW_YEAR_VALUES]
+            .filter((y) => y !== "תשפג")
+            .reverse()
+            .map((y) => (
+              <option key={y} value={y}>
+                {cohortYearOptionLabel(y)}
+              </option>
+            ))}
         </select>
         {view === StudentTrack.REGULAR && (
           <select
