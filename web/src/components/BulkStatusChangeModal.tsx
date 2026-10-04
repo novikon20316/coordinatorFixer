@@ -4,8 +4,8 @@ import { useState } from "react";
 import {
   cohortYearOptionLabel,
   CURRENT_HEBREW_YEAR,
+  GRADUATION_YEAR_VALUES,
   he,
-  HEBREW_YEAR_VALUES,
   HebrewYear,
   isGraduatedStatus,
   Student,
@@ -106,7 +106,7 @@ export function BulkStatusChangeModal({
               onChange={(e) => setGraduationYear(e.target.value as HebrewYear)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
             >
-              {HEBREW_YEAR_VALUES.map((y) => (
+              {GRADUATION_YEAR_VALUES.map((y) => (
                 <option key={y} value={y}>
                   {cohortYearOptionLabel(y)}
                 </option>

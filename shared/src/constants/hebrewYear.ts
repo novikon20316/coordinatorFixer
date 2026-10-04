@@ -7,6 +7,11 @@ export type HebrewYear = "תשפג" | "תשפד" | "תשפה" | "תשפו" | "ת
 
 export const HEBREW_YEAR_VALUES: HebrewYear[] = ["תשפג", "תשפד", "תשפה", "תשפו", "תשפז"];
 
+/** Years selectable as a student's actual graduation year (שנת סיום בפועל).
+ *  Excludes תשפ"ג - the first מחזור the system knows about - since no
+ *  student has ever actually graduated in it. */
+export const GRADUATION_YEAR_VALUES: HebrewYear[] = HEBREW_YEAR_VALUES.filter((y) => y !== "תשפג");
+
 /** The Hebrew year currently in progress. Update this once a year - there is
  *  no calendar math here on purpose, matching how the rest of the app treats
  *  academic years as a fixed, coordinator-maintained list rather than a
