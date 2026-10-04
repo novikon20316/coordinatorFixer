@@ -206,6 +206,8 @@ export const he = {
     nothingMissing: "כל הדרישות הושלמו",
     missingCourseCategory: "{label}: נותרו {remaining}",
     missingMilestonesLabel: "אבני דרך שטרם הושלמו",
+    uncategorizedCoursesLabel: "קורסים מיובאים שטרם נוספו לרשימה",
+    uncategorizedCoursesHint: "יש ציונים בהיסטוריה האקדמית שאינם משויכים לאף קטגוריית דרישה - ייתכן שיש להוסיף אותם ידנית.",
     lecturer: "מרצה",
     gpaBadgeLabel: "ממוצע",
     missingCoursesBadge: "קורסים חסרים",

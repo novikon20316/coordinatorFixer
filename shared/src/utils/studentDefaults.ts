@@ -140,6 +140,16 @@ export const GENERIC_ELECTIVE_SLOT_NAMES = new Set([
   "קורס ליבה 3",
 ]);
 
+/** Grade-sheet columns that map onto a Student's own fields (graduated
+ *  flag, scholarship note) rather than a real course - excluded from
+ *  parseSemesterGrades.ts's course parsing so they don't become fake
+ *  courses named "בוגר כן/לא"/"מלגה" in academicHistory, and from
+ *  uncategorizedAcademicCourses below for the same reason. A record
+ *  imported before this exclusion existed may still carry one of these as
+ *  a stored "course" - this only stops it from being surfaced as one, it
+ *  doesn't retroactively clean the stored data. */
+export const NON_COURSE_COLUMN_NAMES = new Set(["בוגר כן/לא", "מלגה"]);
+
 /**
  * Fills in a student's course-completion checklist from their raw imported
  * academicHistory, without ever overwriting a grade a coordinator already
@@ -175,6 +185,18 @@ export function syncCourseCategoriesFromHistory(
     const match = allCourses.find((c) => names.includes(c.name) && typeof c.grade === "number");
     return match ? (match.grade as number) : undefined;
   }
+  // Grade sheets record an exemption (e.g. "פטור", "פטור מתואר ראשון") as
+  // text rather than a number - real, recorded data that findGrade's numeric
+  // check otherwise ignores forever, leaving an exempted course permanently
+  // "missing" from the checklist. Matched narrowly (a "פטור"-prefixed grade
+  // specifically) since real sheets carry plenty of OTHER non-numeric text
+  // (e.g. "ממתין לציון", "לומד בסמסטר ב") that means the opposite - not yet
+  // complete - and must stay unmatched.
+  function findExemption(names: string[]): boolean {
+    return allCourses.some(
+      (c) => names.includes(c.name) && typeof c.grade === "string" && c.grade.trim().startsWith("פטור")
+    );
+  }
 
   return categories.map((category) => {
     if (category.key === "core_curriculum") {
@@ -188,7 +210,13 @@ export function syncCourseCategoriesFromHistory(
           // A synced grade defaults the course to passed, same as a
           // coordinator typing a grade in by hand (see StudentCard.tsx) -
           // still a real checkbox, so it can be unchecked afterward.
-          if (grade !== undefined) Object.assign(patch, { grade, passed: true });
+          if (grade !== undefined) {
+            Object.assign(patch, { grade, passed: true });
+          } else if (findExemption(aliases)) {
+            // No numeric grade to fill in for an exemption - just the
+            // checkbox itself.
+            Object.assign(patch, { passed: true });
+          }
         }
         return Object.keys(patch).length > 0 ? { ...entry, ...patch } : entry;
       });
@@ -211,6 +239,43 @@ export function syncCourseCategoriesFromHistory(
 
     return category;
   });
+}
+
+/** Course names that appear in a student's imported academicHistory but
+ *  aren't reflected anywhere in their (already-synced - pass the output of
+ *  syncCourseCategoriesFromHistory, not the raw stored categories) checklist
+ *  - a coordinator's natural assumption is that importing grades fills in
+ *  the checklist, but the "core"/"elective" categories have no fixed course
+ *  list (see DATA_SCIENCE_CORE_ELECTIVE_REQUIREMENTS's doc comment - which
+ *  specific courses count is a per-student choice she has to make herself),
+ *  so an imported elective/core-pool course sits in the raw history without
+ *  ever being surfaced unless she notices and adds it by hand. Meant to
+ *  drive a one-line hint on the card so that step isn't silently expected. */
+export function uncategorizedAcademicCourses(
+  categories: CourseCompletionCategory[],
+  academicHistory: SemesterRecord[] | undefined
+): string[] {
+  if (!academicHistory || academicHistory.length === 0) return [];
+
+  const known = new Set<string>();
+  for (const category of categories) {
+    for (const entry of category.entries) {
+      known.add(entry.name);
+      if (category.key === "core_curriculum") {
+        const canonical = canonicalCoreCourseName(entry.name);
+        known.add(canonical);
+        for (const alias of DATA_SCIENCE_CORE_CURRICULUM_ALIASES[canonical] ?? []) known.add(alias);
+      }
+    }
+  }
+
+  const result: string[] = [];
+  for (const c of academicHistory.flatMap((r) => r.courses)) {
+    if (GENERIC_ELECTIVE_SLOT_NAMES.has(c.name) || NON_COURSE_COLUMN_NAMES.has(c.name)) continue;
+    if (known.has(c.name) || result.includes(c.name)) continue;
+    result.push(c.name);
+  }
+  return result;
 }
 
 export interface CoreCurriculumCourseRemoval {

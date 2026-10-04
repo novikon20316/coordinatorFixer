@@ -25,6 +25,7 @@ import {
   StudentStatus,
   studentCohortYearLabel,
   syncCourseCategoriesFromHistory,
+  uncategorizedAcademicCourses,
   validGraduationYear,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
@@ -181,6 +182,7 @@ export function StudentCard({
   const nothingMissing = missingCategories.length === 0 && missingMilestones.length === 0;
   const failedGrade = hasFailingGrade(courseCategories, student.academicHistory);
   const creditShortfall = totalCreditShortfall(courseCategories, student.faculty, student.cohortYear);
+  const uncategorizedCourses = uncategorizedAcademicCourses(courseCategories, student.academicHistory);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -314,6 +316,20 @@ export function StudentCard({
                 </ul>
               ))}
           </section>
+
+          {uncategorizedCourses.length > 0 && (
+            <section className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <h4 className="mb-1 text-xs font-semibold text-blue-800">{he.studentCard.uncategorizedCoursesLabel}</h4>
+              <p className="mb-2 text-[11px] text-blue-700">{he.studentCard.uncategorizedCoursesHint}</p>
+              <div className="flex flex-wrap gap-2">
+                {uncategorizedCourses.map((name) => (
+                  <span key={name} className="rounded-md border border-blue-200 bg-white px-2 py-1 text-xs text-gray-800">
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
 
           {requiredCompletionCourses.length > 0 && (
             <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">

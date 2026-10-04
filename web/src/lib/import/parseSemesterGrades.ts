@@ -5,6 +5,7 @@ import {
   GENERIC_ELECTIVE_SLOT_NAMES,
   HebrewYear,
   mergeAcademicHistory,
+  NON_COURSE_COLUMN_NAMES,
   SemesterCourseGrade,
   SemesterRecord,
   Student,
@@ -46,7 +47,7 @@ const PRIOR_DEGREE_COLUMNS: Record<string, "previousCollege" | "degreeField" | "
 // named "בוגר כן/לא" or "מלגה" in academicHistory/the History tab.
 // GENERIC_ELECTIVE_SLOT_NAMES ("קורס ליבה 1" etc) are a sheet's own unfilled-
 // slot column headers, not a real course - see its doc comment.
-const IGNORED_COLUMNS = new Set(["בוגר כן/לא", "מלגה", ...GENERIC_ELECTIVE_SLOT_NAMES]);
+const IGNORED_COLUMNS = new Set([...NON_COURSE_COLUMN_NAMES, ...GENERIC_ELECTIVE_SLOT_NAMES]);
 const AVERAGE_COLUMN_PATTERN = /מ?מוצע סמסטר/;
 
 function yearBlockToYearOfStudy(label: string): 1 | 2 | undefined {
