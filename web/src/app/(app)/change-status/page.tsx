@@ -15,6 +15,7 @@ import {
   studentCohortYearLabel,
   StudentStatus,
   StudentTrack,
+  validGraduationYear,
 } from "@admin-coordinator/shared";
 import { subscribeStudents } from "../../../data/studentsRepository";
 import { useFaculty } from "../../../context/FacultyContext";
@@ -24,6 +25,21 @@ import { ColumnFilterPopover } from "../../../components/ColumnFilterPopover";
 
 function isDue(s: Student): boolean {
   return !!s.cohortYear && isDueForGraduationReview(s.cohortYear, s.status, s.track);
+}
+
+// The מחזור column's own displayed value: a graduated student shows their
+// actual recorded graduationYear (once valid - see validGraduationYear)
+// instead of the cohort they started in, same reasoning as the overview
+// tab's own graduation-year display. The cohort filter/sort below must use
+// this SAME resolved value rather than the raw cohortYear, or filtering by
+// a year wouldn't match what the column actually shows for a graduated
+// student.
+function displayCohortYear(s: Student) {
+  if (isGraduatedStatus(s.status)) {
+    const g = validGraduationYear(s.graduationYear);
+    if (g) return g;
+  }
+  return s.cohortYear;
 }
 
 // The מצב הרשמה column's own four-way state: a graduated student (either of
@@ -129,7 +145,7 @@ export default function ChangeStatusPage() {
     const q = search.trim().toLowerCase();
     const rows = students
       .filter((s) => !trackFilter || s.track === trackFilter)
-      .filter((s) => !cohortFilter || s.cohortYear === cohortFilter)
+      .filter((s) => !cohortFilter || displayCohortYear(s) === cohortFilter)
       .filter((s) => !dueOnly || isDue(s))
       .filter((s) => !q || s.fullName.toLowerCase().includes(q) || s.idNumber?.toLowerCase().includes(q))
       .filter((s) => registrationStateFilter.length === 0 || registrationStateFilter.includes(registrationStateOf(s)))
@@ -139,8 +155,10 @@ export default function ChangeStatusPage() {
       rows.sort((a, b) => (nameSort === "asc" ? 1 : -1) * a.fullName.localeCompare(b.fullName, "he"));
     } else if (cohortSort) {
       rows.sort((a, b) => {
-        const ai = a.cohortYear ? HEBREW_YEAR_VALUES.indexOf(a.cohortYear) : -1;
-        const bi = b.cohortYear ? HEBREW_YEAR_VALUES.indexOf(b.cohortYear) : -1;
+        const ayear = displayCohortYear(a);
+        const byear = displayCohortYear(b);
+        const ai = ayear ? HEBREW_YEAR_VALUES.indexOf(ayear) : -1;
+        const bi = byear ? HEBREW_YEAR_VALUES.indexOf(byear) : -1;
         return (cohortSort === "asc" ? 1 : -1) * (ai - bi);
       });
     } else {
@@ -326,7 +344,7 @@ export default function ChangeStatusPage() {
                 </td>
                 <td className="px-4 py-2 text-gray-600">
                   {(() => {
-                    const displayYear = isGraduatedStatus(s.status) && s.graduationYear ? s.graduationYear : s.cohortYear;
+                    const displayYear = displayCohortYear(s);
                     return displayYear ? studentCohortYearLabel(displayYear, s.status, s.track) : "—";
                   })()}
                 </td>

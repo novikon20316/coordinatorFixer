@@ -13,6 +13,7 @@ import {
   STUDENT_TRACK_VALUES,
   StudentStatus,
   StudentTrack,
+  validGraduationYear,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 
@@ -49,7 +50,11 @@ export function StatusChangeModal({
   const [status, setStatus] = useState<StudentStatus>(student.status);
   const [track, setTrack] = useState<StudentTrack>(student.track);
   const [graduationYear, setGraduationYear] = useState<HebrewYear>(
-    student.graduationYear ?? student.cohortYear ?? CURRENT_HEBREW_YEAR
+    // cohortYear can itself be the excluded תשפ"ג (a student who started
+    // there is still a valid cohortYear - just never a valid graduation
+    // year), so it needs the same validGraduationYear guard as the stored
+    // graduationYear.
+    validGraduationYear(student.graduationYear) ?? validGraduationYear(student.cohortYear) ?? CURRENT_HEBREW_YEAR
   );
 
   function handleSave() {

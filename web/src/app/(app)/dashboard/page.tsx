@@ -13,6 +13,7 @@ import {
   Student,
   StudentStatus,
   StudentTrack,
+  validGraduationYear,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -60,7 +61,8 @@ const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
 function graduationYearForDisplay(student: Student): HebrewYear | undefined {
-  if (student.graduationYear) return student.graduationYear;
+  const g = validGraduationYear(student.graduationYear);
+  if (g) return g;
   if (!student.cohortYear) return undefined;
   try {
     return addHebrewYears(student.cohortYear, 1);

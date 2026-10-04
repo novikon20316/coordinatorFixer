@@ -25,6 +25,7 @@ import {
   StudentStatus,
   studentCohortYearLabel,
   syncCourseCategoriesFromHistory,
+  validGraduationYear,
 } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 import { useDetailPanels } from "../context/DetailPanelsContext";
@@ -207,9 +208,9 @@ export function StudentCard({
                 {he.studentCard.startYear}: {studentCohortYearLabel(student.cohortYear, status, student.track)}
               </p>
             )}
-            {isGraduatedStatus(status) && student.graduationYear && (
+            {isGraduatedStatus(status) && validGraduationYear(student.graduationYear) && (
               <p className="mt-1 text-xs text-gray-500">
-                {he.studentCard.graduationYear}: {student.graduationYear}
+                {he.studentCard.graduationYear}: {validGraduationYear(student.graduationYear)}
               </p>
             )}
             <div className="mt-1.5 flex flex-wrap gap-1">

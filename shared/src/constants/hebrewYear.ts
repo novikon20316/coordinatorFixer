@@ -12,6 +12,15 @@ export const HEBREW_YEAR_VALUES: HebrewYear[] = ["תשפג", "תשפד", "תשפ
  *  student has ever actually graduated in it. */
 export const GRADUATION_YEAR_VALUES: HebrewYear[] = HEBREW_YEAR_VALUES.filter((y) => y !== "תשפג");
 
+/** A stored graduationYear is only meaningful if it's one of
+ *  GRADUATION_YEAR_VALUES - older records may still carry the excluded
+ *  תשפ"ג from before that exclusion existed, which should be treated the
+ *  same as no graduation year ever having been recorded, everywhere the
+ *  field is read, rather than displayed or filtered on as-is. */
+export function validGraduationYear(graduationYear: HebrewYear | undefined): HebrewYear | undefined {
+  return graduationYear && GRADUATION_YEAR_VALUES.includes(graduationYear) ? graduationYear : undefined;
+}
+
 /** The Hebrew year currently in progress. Update this once a year - there is
  *  no calendar math here on purpose, matching how the rest of the app treats
  *  academic years as a fixed, coordinator-maintained list rather than a
