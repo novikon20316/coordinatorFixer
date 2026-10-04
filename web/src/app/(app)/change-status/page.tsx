@@ -92,6 +92,37 @@ export default function ChangeStatusPage() {
     return unsubscribe;
   }, [faculty]);
 
+  // Filters/sort are local UI state, not something the coordinator expects
+  // to carry over between visits - reset them fresh every time this page
+  // mounts (e.g. navigating here from another tab), not just when faculty
+  // changes.
+  useEffect(() => {
+    resetFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function resetFilters() {
+    setTrackFilter("");
+    setCohortFilter("");
+    setSearch("");
+    setDueOnly(false);
+    setRegistrationStateFilter([]);
+    setStatusFilter([]);
+    setNameSort(null);
+    setCohortSort(null);
+    setOpenColumnFilter(null);
+  }
+
+  const hasActiveFilters =
+    !!trackFilter ||
+    !!cohortFilter ||
+    !!search ||
+    dueOnly ||
+    registrationStateFilter.length > 0 ||
+    statusFilter.length > 0 ||
+    !!nameSort ||
+    !!cohortSort;
+
   const dueCount = useMemo(() => students.filter(isDue).length, [students]);
 
   const filtered = useMemo(() => {
@@ -197,6 +228,14 @@ export default function ChangeStatusPage() {
           <input type="checkbox" checked={dueOnly} onChange={(e) => setDueOnly(e.target.checked)} />
           {he.changeStatus.dueForReviewFilter.replace("{count}", String(dueCount))}
         </label>
+        {hasActiveFilters && (
+          <button
+            onClick={resetFilters}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {he.changeStatus.resetFilters}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3">
