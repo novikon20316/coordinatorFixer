@@ -11,6 +11,7 @@ import {
   HebrewYear,
   isGraduatedStatus,
   Student,
+  StudentStatus,
   StudentTrack,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
@@ -47,7 +48,16 @@ import { useActiveGraduationAttentionAlerts } from "../../../hooks/useActiveGrad
 // excludes certified students, since that view means "who's currently
 // active across every cohort".
 const GRADUATED_VIEW = "GRADUATED" as const;
-type DashboardView = StudentTrack | typeof GRADUATED_VIEW;
+// A fourth view alongside the two tracks and GRADUATED - a student whose
+// status is CANCELED_REGISTRATION (ביטל הרשמה) shows here instead of under
+// their track, mirroring how the change-status table's מצב הרשמה column
+// shows them as "לא פעיל" regardless of track. Same cohort-filter behavior
+// as GRADUATED_VIEW: excluded from their track tab only in the unfiltered
+// "כל המחזורים" view; under their own cohort's filter they still show under
+// their track tab, since that filter is a snapshot of "who was in this
+// cohort" rather than a live status check.
+const INACTIVE_VIEW = "INACTIVE" as const;
+type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
 function graduationYearForDisplay(student: Student): HebrewYear | undefined {
   if (student.graduationYear) return student.graduationYear;
@@ -83,10 +93,14 @@ function studentsForView(students: Student[], v: DashboardView, cohortFilter: st
   if (v === GRADUATED_VIEW) {
     return students.filter((s) => isGraduateVisible(s, cohortFilter));
   }
+  if (v === INACTIVE_VIEW) {
+    const inactive = students.filter((s) => s.status === StudentStatus.CANCELED_REGISTRATION);
+    return cohortFilter ? inactive.filter((s) => s.cohortYear === cohortFilter) : inactive;
+  }
   const byTrack = students.filter((s) => trackForDisplay(s) === v);
   return cohortFilter
     ? byTrack.filter((s) => s.cohortYear === cohortFilter)
-    : byTrack.filter((s) => !isGraduatedStatus(s.status));
+    : byTrack.filter((s) => !isGraduatedStatus(s.status) && s.status !== StudentStatus.CANCELED_REGISTRATION);
 }
 
 export default function DashboardPage() {
@@ -159,6 +173,7 @@ export default function DashboardPage() {
         badge: completionAttentionCount > 0,
       },
       { value: GRADUATED_VIEW, label: `${he.dashboard.graduatesTab} (${countForView(GRADUATED_VIEW)})` },
+      { value: INACTIVE_VIEW, label: `${he.dashboard.inactiveTab} (${countForView(INACTIVE_VIEW)})` },
     ],
     [students, cohortFilter, completionAttentionCount, activeAttentionCount]
   );
@@ -173,7 +188,7 @@ export default function DashboardPage() {
   // For the name search: every tab's students for the selected cycle, so
   // searching by name surfaces matches regardless of which tab is active.
   const searchableStudents = useMemo(() => {
-    const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW];
+    const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW, INACTIVE_VIEW];
     return views.flatMap((v) => studentsForView(students, v, cohortFilter));
   }, [students, cohortFilter]);
 

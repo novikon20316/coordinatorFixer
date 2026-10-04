@@ -140,6 +140,7 @@ export const he = {
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
     graduatesTab: "מוסמכים/ות",
+    inactiveTab: "לא פעילים",
     completionAttentionMessage: "הסטודנט/ית {name} קיבל/ה את כל הציונים ודורש/ת את תשומת לבך",
     activeReadyAttentionMessage: "הסטודנט/ית {name} השלים/ה את כל הציונים ואין נ\"ז חסרים - דורש/ת את תשומת לבך",
     dismissNotification: "סגור התראה",
