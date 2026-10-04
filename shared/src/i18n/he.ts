@@ -125,7 +125,7 @@ export const he = {
 
   dashboard: {
     tabs: {
-      [StudentTrack.REGULAR]: "פעיל",
+      [StudentTrack.REGULAR]: "מצב הרשמה",
       [StudentTrack.COMPLETION]: "בהשלמה",
     } as Record<StudentTrack, string>,
     addStudent: "הוספת תלמיד",
