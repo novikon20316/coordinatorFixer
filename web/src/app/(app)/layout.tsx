@@ -6,16 +6,33 @@ import { he } from "@admin-coordinator/shared";
 import { useAuth } from "../../context/AuthContext";
 import { FacultyProvider } from "../../context/FacultyContext";
 import { SideMenu } from "../../components/SideMenu";
+import { IdleTimeoutModal } from "../../components/IdleTimeoutModal";
+import { useIdleTimeout } from "../../hooks/useIdleTimeout";
+
+// Admin accounts here can see every candidate/student's personal data, so a
+// session left open on a shared or unattended machine shouldn't stay signed
+// in indefinitely - force a re-login after this long without any mouse,
+// keyboard, touch, or scroll activity.
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, profileLoading, loading, isFirebaseConfigured, logout } = useAuth();
   const router = useRouter();
+  const idle = useIdleTimeout(IDLE_TIMEOUT_MS, Boolean(user) && !loading);
 
   useEffect(() => {
     if (!loading && !user && isFirebaseConfigured) {
       router.replace("/login");
     }
   }, [user, loading, isFirebaseConfigured, router]);
+
+  // A full navigation (not a client-side route change) so every bit of
+  // in-memory app state is dropped along with the session, not just the
+  // auth token - the idle dialog is explicitly a "start over clean" prompt.
+  async function handleIdleConfirm() {
+    await logout();
+    window.location.assign("/login");
+  }
 
   if (loading || (user && profileLoading)) {
     return (
@@ -47,6 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SideMenu />
         <main className="flex-1 p-8">{children}</main>
       </div>
+      {idle && <IdleTimeoutModal onConfirm={handleIdleConfirm} />}
     </FacultyProvider>
   );
 }

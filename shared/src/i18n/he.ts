@@ -40,6 +40,11 @@ export const he = {
     accountExistsDifferentMethod: "כתובת האימייל הזו כבר רשומה עם שיטת התחברות אחרת",
     socialSignInFailed: "ההתחברות נכשלה, נסה שוב",
     noAccount: "החשבון הזה אינו רשום במערכת - פנה למנהל המערכת",
+    idleTitle: "עברו מספר דקות ללא פעילות",
+    idleHeading: "You have been inactive for a while",
+    idleBodyHe: "לא עבדת במערכת זמן מה, לכן עליך להתחבר מחדש כדי לוודא שזה באמת אתה.",
+    idleBodyEn: "You have not worked on the system for a while, so you need to log in again to make sure it is really you.",
+    idleConfirm: "אישור / OK",
   },
 
   menu: {
