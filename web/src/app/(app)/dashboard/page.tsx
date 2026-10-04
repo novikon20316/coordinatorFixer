@@ -270,6 +270,9 @@ export default function DashboardPage() {
         allStudents={searchableStudents}
         candidates={candidates}
         refreshTokens={refreshTokens}
+        onStatusChange={(studentId, status) =>
+          setStudents((prev) => prev.map((s) => (s.id === studentId ? { ...s, status } : s)))
+        }
       />
 
       {showAddStudent && (

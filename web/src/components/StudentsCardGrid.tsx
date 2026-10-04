@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Candidate, he, isActiveCourseworkFullyDone, Student } from "@admin-coordinator/shared";
+import { Candidate, he, isActiveCourseworkFullyDone, Student, StudentStatus } from "@admin-coordinator/shared";
 import { StudentCard } from "./StudentCard";
 import { FloatingDetailPanels } from "./FloatingDetailPanels";
 import { DetailPanelsProvider } from "../context/DetailPanelsContext";
@@ -16,6 +16,11 @@ export function StudentsCardGrid(props: {
    *  up the fresh data - see StudentCard's doc comment on why it otherwise
    *  never re-syncs from a write it didn't make itself. */
   refreshTokens?: Record<string, number>;
+  /** Forwarded to each StudentCard so the parent can optimistically patch
+   *  its own students state on a status change made from this grid, instead
+   *  of waiting on the subscribeStudents round trip - see StudentCard's own
+   *  doc comment on onStatusChange. */
+  onStatusChange?: (studentId: string, status: StudentStatus) => void;
 }) {
   return (
     <DetailPanelsProvider>
@@ -30,6 +35,7 @@ function StudentsCardGridBody({
   allStudents,
   candidates = [],
   refreshTokens = {},
+  onStatusChange,
 }: {
   students: Student[];
   // Optional broader pool (e.g. every tab's students) to search across once
@@ -37,6 +43,7 @@ function StudentsCardGridBody({
   allStudents?: Student[];
   candidates?: Candidate[];
   refreshTokens?: Record<string, number>;
+  onStatusChange?: (studentId: string, status: StudentStatus) => void;
 }) {
   const [search, setSearch] = useState("");
   // Alphabetical (א-ת) by default - the coordinator asked to see the list
@@ -100,6 +107,7 @@ function StudentsCardGridBody({
               needsActiveReviewAttention={isActiveCourseworkFullyDone(s)}
               expanded={expandedIds.has(s.id)}
               onToggleExpanded={() => toggleExpanded(s.id)}
+              onStatusChange={onStatusChange}
             />
           ))}
         </div>

@@ -49,6 +49,7 @@ export function StudentCard({
   needsActiveReviewAttention = false,
   expanded,
   onToggleExpanded,
+  onStatusChange,
 }: {
   student: Student;
   /** קורסי השלמה this student's original candidate record marked as
@@ -71,6 +72,12 @@ export function StudentCard({
    *  remount the others. */
   expanded: boolean;
   onToggleExpanded: () => void;
+  /** Lets the parent (StudentsCardGrid/DashboardPage) optimistically patch
+   *  its own `students` state the moment this card changes status, instead
+   *  of waiting on subscribeStudents' onSnapshot round trip - otherwise the
+   *  needsCompletionAttention/needsActiveReviewAttention badges (computed by
+   *  the parent from that state) keep showing until the round trip lands. */
+  onStatusChange?: (studentId: string, status: StudentStatus) => void;
 }) {
   // Local draft, seeded once from the live doc and not re-synced from props
   // afterwards - subscribeStudents' onSnapshot would otherwise clobber
@@ -156,10 +163,12 @@ export function StudentCard({
   function changeStatus(next: StudentStatus) {
     const previous = status;
     setStatus(next);
+    onStatusChange?.(student.id, next);
     setSaveError(null);
     apiFetch(`/api/students/${student.id}`, { method: "PATCH", body: JSON.stringify({ status: next }) }).catch(
       (err) => {
         setStatus(previous);
+        onStatusChange?.(student.id, previous);
         setSaveError(err instanceof Error ? err.message : he.common.error);
       }
     );
