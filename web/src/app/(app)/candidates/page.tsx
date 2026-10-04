@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Candidate, he } from "@admin-coordinator/shared";
+import { useEffect, useMemo, useState } from "react";
+import { Candidate, cohortYearOptionLabel, he, HEBREW_YEAR_VALUES } from "@admin-coordinator/shared";
 import { CandidatesCardGrid } from "../../../components/CandidatesCardGrid";
 import { AddCandidateBar } from "../../../components/AddCandidateBar";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
@@ -13,11 +13,17 @@ export default function CandidatesPage() {
   const { faculty } = useFaculty();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [showImport, setShowImport] = useState(false);
+  const [cohortFilter, setCohortFilter] = useState<string>("");
 
   useEffect(() => {
     const unsubscribe = subscribeCandidates(faculty, setCandidates);
     return unsubscribe;
   }, [faculty]);
+
+  const filteredCandidates = useMemo(
+    () => (cohortFilter ? candidates.filter((c) => c.applyingForYear === cohortFilter) : candidates),
+    [candidates, cohortFilter]
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,11 +37,24 @@ export default function CandidatesPage() {
         </button>
       </div>
 
+      <select
+        value={cohortFilter}
+        onChange={(e) => setCohortFilter(e.target.value)}
+        className="w-fit rounded-md border border-gray-300 px-3 py-2 text-sm"
+      >
+        <option value="">{he.dashboard.cohortFilterAll}</option>
+        {HEBREW_YEAR_VALUES.map((y) => (
+          <option key={y} value={y}>
+            {cohortYearOptionLabel(y)}
+          </option>
+        ))}
+      </select>
+
       {/* No manual refetch after adding/importing/promoting: subscribeCandidates'
           onSnapshot listener above already receives changes in real time. */}
       <AddCandidateBar faculty={faculty} onCreated={() => {}} />
 
-      <CandidatesCardGrid candidates={candidates} onPromoted={() => {}} />
+      <CandidatesCardGrid candidates={filteredCandidates} onPromoted={() => {}} />
 
       {showImport && (
         <ImportReviewModal
