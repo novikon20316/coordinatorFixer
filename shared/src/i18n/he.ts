@@ -348,6 +348,7 @@ export const he = {
 
   changeStatus: {
     title: "שינוי סטטוס",
+    registrationStateInactive: "לא פעיל",
     trackFilterAll: "כל המסלולים",
     facultyFilterAll: "כל הפקולטות",
     clickToChange: "לחצו על שורת תלמיד/ה כדי לשנות את הסטטוס שלו/ה",

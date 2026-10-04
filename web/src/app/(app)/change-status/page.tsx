@@ -26,26 +26,32 @@ function isDue(s: Student): boolean {
   return !!s.cohortYear && isDueForGraduationReview(s.cohortYear, s.status, s.track);
 }
 
-// The מצב הרשמה column's own three-way state: a graduated student (either of
+// The מצב הרשמה column's own four-way state: a graduated student (either of
 // the two isGraduatedStatus statuses) always shows as "GRADUATED" here
 // regardless of their underlying track, since once certified the track they
 // studied under is no longer the relevant fact for this column. Reuses
 // he.status[GRADUATED_ELIGIBLE] ("מוסמך") for the label rather than
-// duplicating the string.
-type RegistrationState = StudentTrack | "GRADUATED";
+// duplicating the string. A student whose status is CANCELED_REGISTRATION
+// always shows as "INACTIVE" ("לא פעיל"), checked before the graduated case
+// since the two statuses never overlap anyway.
+type RegistrationState = StudentTrack | "GRADUATED" | "INACTIVE";
 
 function registrationStateOf(s: Student): RegistrationState {
+  if (s.status === StudentStatus.CANCELED_REGISTRATION) return "INACTIVE";
   return isGraduatedStatus(s.status) ? "GRADUATED" : s.track;
 }
 
 function registrationStateLabel(state: RegistrationState): string {
-  return state === "GRADUATED" ? he.status[StudentStatus.GRADUATED_ELIGIBLE] : he.dashboard.tabs[state];
+  if (state === "GRADUATED") return he.status[StudentStatus.GRADUATED_ELIGIBLE];
+  if (state === "INACTIVE") return he.changeStatus.registrationStateInactive;
+  return he.dashboard.tabs[state];
 }
 
 const REGISTRATION_STATE_OPTIONS: { value: RegistrationState; label: string }[] = [
   { value: StudentTrack.REGULAR, label: he.dashboard.tabs[StudentTrack.REGULAR] },
   { value: StudentTrack.COMPLETION, label: he.dashboard.tabs[StudentTrack.COMPLETION] },
   { value: "GRADUATED", label: he.status[StudentStatus.GRADUATED_ELIGIBLE] },
+  { value: "INACTIVE", label: he.changeStatus.registrationStateInactive },
 ];
 
 const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = STUDENT_STATUS_VALUES.map((s) => ({
