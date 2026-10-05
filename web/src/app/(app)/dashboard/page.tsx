@@ -226,9 +226,14 @@ export default function DashboardPage() {
 
   // For the name search: every tab's students for the selected cycle, so
   // searching by name surfaces matches regardless of which tab is active.
+  // De-duplicated by id - under their own cohort's filter, a graduated
+  // student shows under both their original track view and GRADUATED_VIEW
+  // (see studentsForView/isGraduateVisible), so the flatMap below can list
+  // the same student twice.
   const searchableStudents = useMemo(() => {
     const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW, INACTIVE_VIEW];
-    return views.flatMap((v) => studentsForView(students, v, cohortFilter));
+    const all = views.flatMap((v) => studentsForView(students, v, cohortFilter));
+    return [...new Map(all.map((s) => [s.id, s])).values()];
   }, [students, cohortFilter]);
 
   return (
