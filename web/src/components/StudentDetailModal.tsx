@@ -53,6 +53,8 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
   const [background, setBackground] = useState(student.background);
   const [cohortYear, setCohortYear] = useState<HebrewYear | "">(student.cohortYear ?? "");
   const [track, setTrack] = useState<StudentTrack>(student.track);
+  const [idNumber, setIdNumber] = useState(student.idNumber ?? "");
+  const [notes, setNotes] = useState(student.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,11 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
           background,
           cohortYear: cohortYear || undefined,
           track,
+          // Only ever sent once - the field is only editable while empty
+          // (see the idNumber input below), so an existing value never
+          // gets overwritten by this save.
+          ...(student.idNumber ? {} : { idNumber }),
+          notes,
           // Sticky historical flag for the Reports page's "האם היה בהשלמה"
           // column - once true, stays true even after track moves off
           // COMPLETION (see the field's own doc comment in types/student.ts).
@@ -98,7 +105,20 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
       <div className="flex flex-col gap-4">
         <Section title={he.studentDetail.personalSection}>
             <Field label={he.table.columns.fullName} value={student.fullName} />
-            <Field label={he.studentForm.idNumber} value={student.idNumber} />
+            {student.idNumber ? (
+              <Field label={he.studentForm.idNumber} value={student.idNumber} />
+            ) : (
+              <label className="flex flex-col gap-1 text-xs text-gray-500">
+                {he.studentForm.idNumber}
+                <input
+                  dir="ltr"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                  placeholder={he.studentForm.idNumberPlaceholder}
+                  className={inputClass}
+                />
+              </label>
+            )}
             <Field label={he.coordinators.faculty} value={he.faculty[student.faculty]} />
             <label className="flex flex-col gap-1 text-xs text-gray-500">
               {he.studentForm.track}
@@ -161,6 +181,15 @@ export function StudentDetailModal({ student, onClose }: { student: Student; onC
             <label className="flex flex-col gap-1 text-xs text-gray-500 sm:col-span-2">
               {he.table.columns.background}
               <input value={background} onChange={(e) => setBackground(e.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-500 sm:col-span-2">
+              {he.studentCard.notes}
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                className={inputClass}
+              />
             </label>
           </Section>
 
