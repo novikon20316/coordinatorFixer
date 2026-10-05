@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   activeYearOfStudy,
   Candidate,
@@ -11,6 +11,7 @@ import {
   Student,
   StudentStatus,
   StudentTrack,
+  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -46,6 +47,16 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
+// Cohort years offered by the filter on the graduates tab, restricted to
+// ones whose nominal 2-year program has already run its course - a student
+// who started in תשפ"ו or תשפ"ז, say, should still be in year 1/2 and can
+// never be a graduate of that cohort yet, so offering those years there
+// would always show zero results. Driven off CURRENT_HEBREW_YEAR (see
+// hebrewYear.ts), so this list grows by itself the next time that constant
+// is bumped at the yearly Rosh Hashana update - nothing here needs to
+// change when a new cohort year "finishes".
+const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter((y) => yearOfStudy(y) === "GRADUATED");
+
 function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!isGraduatedStatus(student.status)) return false;
   if (!referenceCycle) return true;
@@ -59,6 +70,48 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
 // shown by their actual track.
 function trackForDisplay(student: Student): StudentTrack {
   return isGraduatedStatus(student.status) ? StudentTrack.REGULAR : student.track;
+}
+
+// Small "?" button beside the cohort filter that shows a one-line usage
+// example on click - closes on an outside click or Escape, same interaction
+// pattern as ColumnFilterPopover.
+function CohortFilterHelp() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={he.dashboard.cohortFilterHelpAria}
+        className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-xs font-semibold text-gray-500 hover:bg-gray-50"
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-md border border-gray-200 bg-white p-3 text-right text-xs leading-relaxed text-gray-700 shadow-lg">
+          {he.dashboard.cohortFilterHelpText}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function studentsForView(students: Student[], v: DashboardView, cohortFilter: string): Student[] {
@@ -114,6 +167,20 @@ export default function DashboardPage() {
     });
     return unsubscribe;
   }, [faculty]);
+
+  // Switching into the graduates tab with a cohort year selected that isn't
+  // offered there (e.g. a still-in-progress תשפ"ז carried over from another
+  // tab) would otherwise leave the <select> showing a value with no matching
+  // option - fall back to "כל המחזורים" instead.
+  useEffect(() => {
+    if (view !== GRADUATED_VIEW) return;
+    if (cohortFilter && !GRADUATED_COHORT_YEAR_VALUES.some((y) => y === cohortFilter)) {
+      setCohortFilter("");
+    }
+  }, [view, cohortFilter]);
+
+  const cohortOptionValues =
+    view === GRADUATED_VIEW ? GRADUATED_COHORT_YEAR_VALUES : HEBREW_YEAR_VALUES.filter((y) => y !== "תשפג");
 
   const countForView = (v: DashboardView) => studentsForView(students, v, cohortFilter).length;
 
@@ -204,24 +271,28 @@ export default function DashboardPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <TrackTabs value={view} onChange={setView} options={viewOptions} />
-        <select
-          value={cohortFilter}
-          onChange={(e) => setCohortFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 text-sm"
-        >
-          <option value="">{he.dashboard.cohortFilterAll}</option>
-          {/* תשפ"ג excluded - the system's first tracked מחזור isn't a
-              meaningful filter choice, same reasoning as excluding it from
-              the graduation-year picker (see GRADUATION_YEAR_VALUES). */}
-          {[...HEBREW_YEAR_VALUES]
-            .filter((y) => y !== "תשפג")
-            .reverse()
-            .map((y) => (
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-gray-600">{he.dashboard.cohortFilterLabel}</span>
+          <select
+            value={cohortFilter}
+            onChange={(e) => setCohortFilter(e.target.value)}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+          >
+            <option value="">{he.dashboard.cohortFilterAll}</option>
+            {/* Outside the graduates tab, תשפ"ג is excluded - the system's
+                first tracked מחזור isn't a meaningful filter choice there,
+                same reasoning as excluding it from the graduation-year
+                picker (see GRADUATION_YEAR_VALUES). On the graduates tab the
+                option list is GRADUATED_COHORT_YEAR_VALUES instead, which
+                naturally includes it. */}
+            {[...cohortOptionValues].reverse().map((y) => (
               <option key={y} value={y}>
                 {cohortYearOptionLabel(y)}
               </option>
             ))}
-        </select>
+          </select>
+          <CohortFilterHelp />
+        </div>
         {view === StudentTrack.REGULAR && (
           <select
             value={yearFilter}

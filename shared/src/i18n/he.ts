@@ -141,6 +141,10 @@ export const he = {
     studentsListTitle: "רשימת סטודנטים",
     searchPlaceholder: "חיפוש לפי שם או ת.ז...",
     cohortFilterAll: "כל המחזורים",
+    cohortFilterLabel: "ממיין לפי שנת תחילת הלימודים של הסטודנט",
+    cohortFilterHelpAria: "דוגמה לשימוש במסנן המחזור",
+    cohortFilterHelpText:
+      'לדוגמה: בלשונית "מוסמכים/ות", בחירה ב"תשפ"ה" תציג רק סטודנטים שהתחילו את לימודיהם בשנת תשפ"ה - גם אם סיימו בפועל בשנה מאוחרת יותר.',
     yearFilterAll: "כל השנים",
     sortAscending: "מיון א-ת",
     sortDescending: "מיון ת-א",
