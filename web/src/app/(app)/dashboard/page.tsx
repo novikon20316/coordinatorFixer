@@ -3,17 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   activeYearOfStudy,
-  addHebrewYears,
   Candidate,
   cohortYearOptionLabel,
   HEBREW_YEAR_VALUES,
   he,
-  HebrewYear,
   isGraduatedStatus,
   Student,
   StudentStatus,
   StudentTrack,
-  validGraduationYear,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -34,20 +31,9 @@ import { useActiveGraduationAttentionAlerts } from "../../../hooks/useActiveGrad
 // here instead of under their track, regardless of which track they were
 // on. A student counts as graduated only by status (isGraduatedStatus, i.e.
 // one of the two "מוסמך/כת" statuses set by hand) - never inferred merely
-// from having an earlier cohort year while still ACTIVE. A certified
-// student only shows under the graduates tab once the cohort filter has
-// caught up to their actual graduationYear: either "כל המחזורים" (no
-// filter), or any Hebrew year from graduationYear onward (accumulating in
-// every later year's filter too, never dropping back out) - never a year
-// before it. Since the program nominally runs 2 years but some students take
-// longer, graduationYear is the real recorded finish year rather than an
-// assumption; a record saved before that field existed falls back to
-// cohortYear + 1 here. Under their OWN cohort year's filter a certified
-// student instead belongs under their track tab regardless of current
-// status - that filter is a snapshot of "who was in this cohort", not a live
-// status check. Only the unfiltered "כל המחזורים" view of the track tabs
-// excludes certified students, since that view means "who's currently
-// active across every cohort".
+// from having an earlier cohort year while still ACTIVE. The cohort filter
+// here matches the same way it does for the track tabs: exact equality on
+// the student's own cohortYear (שנת התחלה), not their graduation year.
 const GRADUATED_VIEW = "GRADUATED" as const;
 // A fourth view alongside the two tracks and GRADUATED - a student whose
 // status is CANCELED_REGISTRATION (ביטל הרשמה) shows here instead of under
@@ -60,26 +46,10 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
-function graduationYearForDisplay(student: Student): HebrewYear | undefined {
-  const g = validGraduationYear(student.graduationYear);
-  if (g) return g;
-  if (!student.cohortYear) return undefined;
-  try {
-    return addHebrewYears(student.cohortYear, 1);
-  } catch {
-    return undefined;
-  }
-}
-
 function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!isGraduatedStatus(student.status)) return false;
   if (!referenceCycle) return true;
-  const graduationYear = graduationYearForDisplay(student);
-  if (!graduationYear) return false;
-  return (
-    HEBREW_YEAR_VALUES.indexOf(referenceCycle as (typeof HEBREW_YEAR_VALUES)[number]) >=
-    HEBREW_YEAR_VALUES.indexOf(graduationYear)
-  );
+  return student.cohortYear === referenceCycle;
 }
 
 // "בהשלמה" (COMPLETION) describes a student actively working through missing
