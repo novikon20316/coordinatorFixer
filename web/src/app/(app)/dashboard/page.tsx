@@ -39,11 +39,9 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 // A fourth view alongside the two tracks and GRADUATED - a student whose
 // status is CANCELED_REGISTRATION (ביטל הרשמה) shows here instead of under
 // their track, mirroring how the change-status table's מצב הרשמה column
-// shows them as "לא פעיל" regardless of track. Same cohort-filter behavior
-// as GRADUATED_VIEW: excluded from their track tab only in the unfiltered
-// "כל המחזורים" view; under their own cohort's filter they still show under
-// their track tab, since that filter is a snapshot of "who was in this
-// cohort" rather than a live status check.
+// shows them as "לא פעיל" regardless of track. Excluded from the track tabs
+// regardless of the cohort filter - "פעיל"/"בהשלמה" always mean current
+// status, even when narrowed to a single cohort.
 const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
@@ -61,15 +59,6 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!isGraduatedStatus(student.status)) return false;
   if (!referenceCycle) return true;
   return student.cohortYear === referenceCycle;
-}
-
-// "בהשלמה" (COMPLETION) describes a student actively working through missing
-// credits; once certified they're done completing, so under their own
-// cohort's filter a certified student always displays as "פעיל" (REGULAR)
-// regardless of their stored track - only a still-uncertified student is
-// shown by their actual track.
-function trackForDisplay(student: Student): StudentTrack {
-  return isGraduatedStatus(student.status) ? StudentTrack.REGULAR : student.track;
 }
 
 // Small "?" button beside the cohort filter that shows a one-line usage
@@ -122,10 +111,10 @@ function studentsForView(students: Student[], v: DashboardView, cohortFilter: st
     const inactive = students.filter((s) => s.status === StudentStatus.CANCELED_REGISTRATION);
     return cohortFilter ? inactive.filter((s) => s.cohortYear === cohortFilter) : inactive;
   }
-  const byTrack = students.filter((s) => trackForDisplay(s) === v);
-  return cohortFilter
-    ? byTrack.filter((s) => s.cohortYear === cohortFilter)
-    : byTrack.filter((s) => !isGraduatedStatus(s.status) && s.status !== StudentStatus.CANCELED_REGISTRATION);
+  const byTrack = students.filter(
+    (s) => s.track === v && !isGraduatedStatus(s.status) && s.status !== StudentStatus.CANCELED_REGISTRATION
+  );
+  return cohortFilter ? byTrack.filter((s) => s.cohortYear === cohortFilter) : byTrack;
 }
 
 export default function DashboardPage() {
@@ -226,10 +215,8 @@ export default function DashboardPage() {
 
   // For the name search: every tab's students for the selected cycle, so
   // searching by name surfaces matches regardless of which tab is active.
-  // De-duplicated by id - under their own cohort's filter, a graduated
-  // student shows under both their original track view and GRADUATED_VIEW
-  // (see studentsForView/isGraduateVisible), so the flatMap below can list
-  // the same student twice.
+  // The four views are mutually exclusive (status/track partition them), but
+  // still de-duplicated by id as a safety net.
   const searchableStudents = useMemo(() => {
     const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW, INACTIVE_VIEW];
     const all = views.flatMap((v) => studentsForView(students, v, cohortFilter));
