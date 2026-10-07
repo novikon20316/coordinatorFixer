@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   activeYearOfStudy,
+  addHebrewYears,
   Candidate,
   cohortYearOptionLabel,
   CURRENT_HEBREW_YEAR,
@@ -32,9 +33,12 @@ import { useActiveGraduationAttentionAlerts } from "../../../hooks/useActiveGrad
 // here instead of under their track, regardless of which track they were
 // on. A student counts as graduated only by status (isGraduatedStatus, i.e.
 // one of the two "מוסמך/כת" statuses set by hand) - never inferred merely
-// from having an earlier cohort year while still ACTIVE. The cohort filter
-// here matches the same way it does for the track tabs: exact equality on
-// the student's own cohortYear (שנת התחלה), not their graduation year.
+// from having an earlier cohort year while still ACTIVE. Unlike the track
+// tabs (exact equality on the student's own cohortYear), the cohort filter
+// here is offset by one year: a student is only shown once the filter is set
+// to the Hebrew year AFTER their own cohortYear (see isGraduateVisible) -
+// e.g. a תשפ"ג-cohort graduate only shows up under the תשפ"ד filter, not
+// תשפ"ג itself.
 const GRADUATED_VIEW = "GRADUATED" as const;
 // A fourth view alongside the two tracks and GRADUATED - a student whose
 // status is CANCELED_REGISTRATION (ביטל הרשמה) shows here instead of under
@@ -57,14 +61,28 @@ type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW
 // Driven off CURRENT_HEBREW_YEAR (see hebrewYear.ts), so this list grows by
 // itself the next time that constant is bumped - nothing here needs to
 // change when a new cohort year starts.
+//
+// These values are themselves the filter's offset-by-one scale (see
+// isGraduateVisible) - selecting "תשפ"ו" here shows the תשפ"ה cohort's
+// graduates, not תשפ"ו's.
 const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter(
   (y) => y !== "תשפג" && y !== CURRENT_HEBREW_YEAR
 );
 
+// A graduate only shows up once the cohort filter has advanced one Hebrew
+// year past their own cohortYear - e.g. a student who started in תשפ"ג is
+// only shown under the תשפ"ד filter, never under תשפ"ג itself. This mirrors
+// how the department actually files a cohort's graduation paperwork under
+// the year after they started, not their start year.
 function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!isGraduatedStatus(student.status)) return false;
   if (!referenceCycle) return true;
-  return student.cohortYear === referenceCycle;
+  if (!student.cohortYear) return false;
+  try {
+    return addHebrewYears(student.cohortYear, 1) === referenceCycle;
+  } catch {
+    return false;
+  }
 }
 
 // Small "?" button beside the cohort filter that shows a one-line usage
