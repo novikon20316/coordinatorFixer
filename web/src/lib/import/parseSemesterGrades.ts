@@ -1,6 +1,7 @@
 import {
   addHebrewYears,
   DegreeType,
+  expectedGraduationYear,
   Faculty,
   GENERIC_ELECTIVE_SLOT_NAMES,
   HebrewYear,
@@ -196,6 +197,7 @@ export function parseSemesterGrades(
       actionLabel: matched ? `עדכון: ${matched.fullName}` : "חדש",
       apply: async () => {
         if (matched) {
+          const cohortYear = matched.cohortYear ?? opts.cohortYear;
           await apiFetch(`/api/students/${matched.id}`, {
             method: "PATCH",
             body: JSON.stringify({
@@ -203,7 +205,10 @@ export function parseSemesterGrades(
                 (hist, rec) => mergeAcademicHistory(hist, rec),
                 matched.academicHistory
               ),
-              cohortYear: matched.cohortYear ?? opts.cohortYear,
+              cohortYear,
+              ...(extra.status === StudentStatus.GRADUATED_ELIGIBLE
+                ? { graduationYear: expectedGraduationYear(cohortYear) }
+                : {}),
               ...extra,
             }),
           });
@@ -224,6 +229,9 @@ export function parseSemesterGrades(
               background: "",
               source: "IMPORTED",
               academicHistory: semesterRecords,
+              ...(extra.status === StudentStatus.GRADUATED_ELIGIBLE
+                ? { graduationYear: expectedGraduationYear(opts.cohortYear) }
+                : {}),
               ...extra,
             }),
           });

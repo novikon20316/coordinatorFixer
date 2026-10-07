@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   cohortYearOptionLabel,
   CURRENT_HEBREW_YEAR,
+  expectedGraduationYear,
   GRADUATION_YEAR_VALUES,
   he,
   HebrewYear,
@@ -50,11 +51,13 @@ export function StatusChangeModal({
   const [status, setStatus] = useState<StudentStatus>(student.status);
   const [track, setTrack] = useState<StudentTrack>(student.track);
   const [graduationYear, setGraduationYear] = useState<HebrewYear>(
-    // cohortYear can itself be the excluded תשפ"ג (a student who started
-    // there is still a valid cohortYear - just never a valid graduation
-    // year), so it needs the same validGraduationYear guard as the stored
-    // graduationYear.
-    validGraduationYear(student.graduationYear) ?? validGraduationYear(student.cohortYear) ?? CURRENT_HEBREW_YEAR
+    // Defaults to the year the student's own cohort is actually expected to
+    // graduate in (two years after cohortYear, see expectedGraduationYear) -
+    // not the raw cohortYear itself, which is only their FIRST year of study
+    // and was never a valid graduation year for them.
+    validGraduationYear(student.graduationYear) ??
+      (student.cohortYear ? expectedGraduationYear(student.cohortYear) : undefined) ??
+      CURRENT_HEBREW_YEAR
   );
 
   function handleSave() {

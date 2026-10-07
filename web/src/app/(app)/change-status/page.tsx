@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   cohortYearOptionLabel,
+  expectedGraduationYear,
   Faculty,
   FACULTY_VALUES,
   HEBREW_YEAR_VALUES,
@@ -30,14 +31,20 @@ function isDue(s: Student): boolean {
 // The מחזור column's own displayed value: a graduated student shows their
 // actual recorded graduationYear (once valid - see validGraduationYear)
 // instead of the cohort they started in, same reasoning as the overview
-// tab's own graduation-year display. The cohort filter/sort below must use
-// this SAME resolved value rather than the raw cohortYear, or filtering by
-// a year wouldn't match what the column actually shows for a graduated
-// student.
+// tab's own graduation-year display. Falling back to the raw cohortYear when
+// no graduationYear is recorded would mislabel the student's FIRST year of
+// study as their graduation year (e.g. a תשפ"ג cohort shown as "תשפ"ג
+// (מוסמך)"), so the fallback is the two-years-later year the program's
+// length (see yearOfStudy) actually implies instead. The cohort filter/sort
+// below must use this SAME resolved value rather than the raw cohortYear, or
+// filtering by a year wouldn't match what the column actually shows for a
+// graduated student.
 function displayCohortYear(s: Student) {
   if (isGraduatedStatus(s.status)) {
     const g = validGraduationYear(s.graduationYear);
     if (g) return g;
+    const expected = s.cohortYear ? expectedGraduationYear(s.cohortYear) : undefined;
+    if (expected) return expected;
   }
   return s.cohortYear;
 }

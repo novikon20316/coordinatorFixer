@@ -44,6 +44,17 @@ export function cohortNumber(year: HebrewYear): number {
   return HEBREW_YEAR_VALUES.indexOf(year) + 1;
 }
 
+/** The year a student who started in `cohortYear` is expected to graduate in,
+ *  i.e. two years later - the same program length yearOfStudy assumes.
+ *  Returns undefined if that year isn't in HEBREW_YEAR_VALUES yet (a cohort
+ *  so recent its graduation year hasn't been added to the system's known
+ *  years list) rather than throwing, since callers display this rather than
+ *  requiring it. */
+export function expectedGraduationYear(cohortYear: HebrewYear): HebrewYear | undefined {
+  const index = HEBREW_YEAR_VALUES.indexOf(cohortYear) + 2;
+  return HEBREW_YEAR_VALUES[index];
+}
+
 /** Where a student who started in `cohortYear` stands as of `asOfYear`
  *  (defaults to the current Hebrew year) - the program is 2 years long, so a
  *  cohort is in year 1 the year it starts, year 2 the year after, and
