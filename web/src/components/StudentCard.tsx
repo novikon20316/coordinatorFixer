@@ -263,7 +263,24 @@ export function StudentCard({
       </div>
 
       {expanded && (
-        <div className="flex flex-col gap-4 border-t border-gray-100 pt-3">
+        <div className="fixed inset-y-0 left-0 z-40 flex w-[460px] max-w-[90vw] flex-col overflow-y-auto border-r border-gray-200 bg-white shadow-2xl">
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3">
+            <div className="min-w-0">
+              <h3 className="truncate font-bold text-gray-900">{student.fullName}</h3>
+              <p className="text-xs text-gray-500" dir="ltr">
+                {student.idNumber}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onToggleExpanded}
+              aria-label={he.studentCard.collapse}
+              className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex flex-col gap-4 p-4">
           <label className="flex w-48 flex-col gap-1 text-xs text-gray-600">
             {he.studentCard.degreeGpa}
             <input
@@ -446,6 +463,7 @@ export function StudentCard({
                   {he.studentCard.clearanceForm}
                 </button>
               ))}
+          </div>
           </div>
         </div>
       )}
