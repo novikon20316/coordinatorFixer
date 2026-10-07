@@ -5,13 +5,13 @@ import {
   activeYearOfStudy,
   Candidate,
   cohortYearOptionLabel,
+  CURRENT_HEBREW_YEAR,
   HEBREW_YEAR_VALUES,
   he,
   isGraduatedStatus,
   Student,
   StudentStatus,
   StudentTrack,
-  yearOfStudy,
 } from "@admin-coordinator/shared";
 import { TrackTabs } from "../../../components/TrackTabs";
 import { StudentsCardGrid } from "../../../components/StudentsCardGrid";
@@ -45,15 +45,21 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
-// Cohort years offered by the filter on the graduates tab, restricted to
-// ones whose nominal 2-year program has already run its course - a student
-// who started in תשפ"ו or תשפ"ז, say, should still be in year 1/2 and can
-// never be a graduate of that cohort yet, so offering those years there
-// would always show zero results. Driven off CURRENT_HEBREW_YEAR (see
-// hebrewYear.ts), so this list grows by itself the next time that constant
-// is bumped at the yearly Rosh Hashana update - nothing here needs to
-// change when a new cohort year "finishes".
-const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter((y) => yearOfStudy(y) === "GRADUATED");
+// Cohort years offered by the filter on the graduates tab. Excludes תשפ"ג -
+// the system's first tracked מחזור - since no student has ever actually
+// graduated in it (same reasoning as GRADUATION_YEAR_VALUES), and excludes
+// the in-progress CURRENT_HEBREW_YEAR, since a cohort that just started
+// can't have a graduate yet. Everything in between is offered even if its
+// nominal 2-year program hasn't formally run its course (yearOfStudy still
+// has it at year 2) - a coordinator can mark a student graduated early via
+// the actual graduation year on their card, so e.g. תשפ"ו belongs here well
+// before the Rosh Hashana bump that would otherwise flip it to "GRADUATED".
+// Driven off CURRENT_HEBREW_YEAR (see hebrewYear.ts), so this list grows by
+// itself the next time that constant is bumped - nothing here needs to
+// change when a new cohort year starts.
+const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter(
+  (y) => y !== "תשפג" && y !== CURRENT_HEBREW_YEAR
+);
 
 function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   if (!isGraduatedStatus(student.status)) return false;
