@@ -9,6 +9,7 @@ import {
   CURRENT_HEBREW_YEAR,
   HEBREW_YEAR_VALUES,
   he,
+  HebrewYear,
   isGraduatedStatus,
   Student,
   StudentStatus,
@@ -43,30 +44,29 @@ const GRADUATED_VIEW = "GRADUATED" as const;
 // A fourth view alongside the two tracks and GRADUATED - a student whose
 // status is CANCELED_REGISTRATION (ביטל הרשמה) shows here instead of under
 // their track, mirroring how the change-status table's מצב הרשמה column
-// shows them as "לא פעיל" regardless of track. Excluded from the track tabs
-// regardless of the cohort filter - "פעיל"/"בהשלמה" always mean current
-// status, even when narrowed to a single cohort.
+// shows them as "לא פעיל" regardless of track. Same cohort-filter behavior
+// as GRADUATED_VIEW: excluded from their track tab only in the unfiltered
+// "כל המחזורים" view; under their own cohort's filter they still show under
+// their track tab too, since that filter is a snapshot of "who was in this
+// cohort" rather than a live status check.
 const INACTIVE_VIEW = "INACTIVE" as const;
 type DashboardView = StudentTrack | typeof GRADUATED_VIEW | typeof INACTIVE_VIEW;
 
-// Cohort years offered by the filter on the graduates tab. Excludes תשפ"ג -
-// the system's first tracked מחזור - since no student has ever actually
-// graduated in it (same reasoning as GRADUATION_YEAR_VALUES), and excludes
-// the in-progress CURRENT_HEBREW_YEAR, since a cohort that just started
-// can't have a graduate yet. Everything in between is offered even if its
-// nominal 2-year program hasn't formally run its course (yearOfStudy still
-// has it at year 2) - a coordinator can mark a student graduated early via
-// the actual graduation year on their card, so e.g. תשפ"ו belongs here well
-// before the Rosh Hashana bump that would otherwise flip it to "GRADUATED".
-// Driven off CURRENT_HEBREW_YEAR (see hebrewYear.ts), so this list grows by
-// itself the next time that constant is bumped - nothing here needs to
-// change when a new cohort year starts.
-//
-// These values are themselves the filter's offset-by-one scale (see
-// isGraduateVisible) - selecting "תשפ"ו" here shows the תשפ"ה cohort's
-// graduates, not תשפ"ו's.
-const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter(
-  (y) => y !== "תשפג" && y !== CURRENT_HEBREW_YEAR
+// Cohort years offered by the filter on the graduates tab - NOT cohort
+// start years themselves, but each one's "+1" (see isGraduateVisible): every
+// tracked cohort except the in-progress CURRENT_HEBREW_YEAR (a cohort that
+// just started can't have a graduate yet) gets offered as cohortYear+1, so
+// e.g. selecting "תשפ"ד" here shows תשפ"ג's graduates. A cohort whose own
+// nominal 2-year program hasn't formally run its course is still included -
+// a coordinator can mark a student graduated early via the actual graduation
+// year on their card, so e.g. תשפ"ז (CURRENT_HEBREW_YEAR's own +1) belongs
+// here to surface an early תשפ"ו graduate well before the Rosh Hashana bump
+// that would otherwise flip תשפ"ו to "GRADUATED". Driven off
+// CURRENT_HEBREW_YEAR (see hebrewYear.ts), so this list grows by itself the
+// next time that constant is bumped - nothing here needs to change when a
+// new cohort year starts.
+const GRADUATED_COHORT_YEAR_VALUES = HEBREW_YEAR_VALUES.filter((y) => y !== CURRENT_HEBREW_YEAR).map((y) =>
+  addHebrewYears(y, 1)
 );
 
 // A graduate only shows up once the cohort filter has advanced one Hebrew
@@ -83,6 +83,28 @@ function isGraduateVisible(student: Student, referenceCycle: string): boolean {
   } catch {
     return false;
   }
+}
+
+// Cohort years offered by the filter's <select>, per tab. תשפ"ג - the
+// system's first tracked מחזור - is only offered on the active (REGULAR)
+// tab; everywhere else it's excluded as not a meaningful filter choice
+// (same reasoning as excluding it from the graduation-year picker, see
+// GRADUATION_YEAR_VALUES), and on the graduates tab it's moot anyway since
+// GRADUATED_COHORT_YEAR_VALUES never contains it as a value (see
+// isGraduateVisible's offset).
+function cohortOptionValuesForView(view: DashboardView): readonly HebrewYear[] {
+  if (view === GRADUATED_VIEW) return GRADUATED_COHORT_YEAR_VALUES;
+  if (view === StudentTrack.REGULAR) return HEBREW_YEAR_VALUES;
+  return HEBREW_YEAR_VALUES.filter((y) => y !== "תשפג");
+}
+
+// "בהשלמה" (COMPLETION) describes a student actively working through missing
+// credits; once certified they're done completing, so under their own
+// cohort's filter a certified student always displays as "פעיל" (REGULAR)
+// regardless of their stored track - only a still-uncertified student is
+// shown by their actual track.
+function trackForDisplay(student: Student): StudentTrack {
+  return isGraduatedStatus(student.status) ? StudentTrack.REGULAR : student.track;
 }
 
 // Small "?" button beside the cohort filter that shows a one-line usage
@@ -135,10 +157,10 @@ function studentsForView(students: Student[], v: DashboardView, cohortFilter: st
     const inactive = students.filter((s) => s.status === StudentStatus.CANCELED_REGISTRATION);
     return cohortFilter ? inactive.filter((s) => s.cohortYear === cohortFilter) : inactive;
   }
-  const byTrack = students.filter(
-    (s) => s.track === v && !isGraduatedStatus(s.status) && s.status !== StudentStatus.CANCELED_REGISTRATION
-  );
-  return cohortFilter ? byTrack.filter((s) => s.cohortYear === cohortFilter) : byTrack;
+  const byTrack = students.filter((s) => trackForDisplay(s) === v);
+  return cohortFilter
+    ? byTrack.filter((s) => s.cohortYear === cohortFilter)
+    : byTrack.filter((s) => !isGraduatedStatus(s.status) && s.status !== StudentStatus.CANCELED_REGISTRATION);
 }
 
 export default function DashboardPage() {
@@ -181,19 +203,18 @@ export default function DashboardPage() {
     return unsubscribe;
   }, [faculty]);
 
-  // Switching into the graduates tab with a cohort year selected that isn't
-  // offered there (e.g. a still-in-progress תשפ"ז carried over from another
-  // tab) would otherwise leave the <select> showing a value with no matching
-  // option - fall back to "כל המחזורים" instead.
+  // Switching tabs with a cohort year selected that isn't offered on the new
+  // tab (e.g. תשפ"ג carried over from the active tab into the graduates or
+  // בהשלמה tab) would otherwise leave the <select> showing a value with no
+  // matching option - fall back to "כל המחזורים" instead.
   useEffect(() => {
-    if (view !== GRADUATED_VIEW) return;
-    if (cohortFilter && !GRADUATED_COHORT_YEAR_VALUES.some((y) => y === cohortFilter)) {
+    const allowed = cohortOptionValuesForView(view);
+    if (cohortFilter && !allowed.some((y) => y === cohortFilter)) {
       setCohortFilter("");
     }
   }, [view, cohortFilter]);
 
-  const cohortOptionValues =
-    view === GRADUATED_VIEW ? GRADUATED_COHORT_YEAR_VALUES : HEBREW_YEAR_VALUES.filter((y) => y !== "תשפג");
+  const cohortOptionValues = cohortOptionValuesForView(view);
 
   const countForView = (v: DashboardView) => studentsForView(students, v, cohortFilter).length;
 
@@ -239,8 +260,10 @@ export default function DashboardPage() {
 
   // For the name search: every tab's students for the selected cycle, so
   // searching by name surfaces matches regardless of which tab is active.
-  // The four views are mutually exclusive (status/track partition them), but
-  // still de-duplicated by id as a safety net.
+  // De-duplicated by id - under their own cohort's filter, a graduated or
+  // canceled student shows under both their original track view and
+  // GRADUATED_VIEW/INACTIVE_VIEW (see studentsForView/isGraduateVisible), so
+  // the flatMap below can list the same student twice.
   const searchableStudents = useMemo(() => {
     const views: DashboardView[] = [StudentTrack.REGULAR, StudentTrack.COMPLETION, GRADUATED_VIEW, INACTIVE_VIEW];
     const all = views.flatMap((v) => studentsForView(students, v, cohortFilter));
@@ -295,12 +318,7 @@ export default function DashboardPage() {
             className="rounded-md border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">{he.dashboard.cohortFilterAll}</option>
-            {/* Outside the graduates tab, תשפ"ג is excluded - the system's
-                first tracked מחזור isn't a meaningful filter choice there,
-                same reasoning as excluding it from the graduation-year
-                picker (see GRADUATION_YEAR_VALUES). On the graduates tab the
-                option list is GRADUATED_COHORT_YEAR_VALUES instead, which
-                naturally includes it. */}
+            {/* Per-tab option list - see cohortOptionValuesForView. */}
             {[...cohortOptionValues].reverse().map((y) => (
               <option key={y} value={y}>
                 {cohortYearOptionLabel(y)}
