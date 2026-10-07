@@ -74,9 +74,9 @@ function StudentsCardGridBody({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold text-gray-900">{he.dashboard.studentsListTitle}</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setSortAscending((v) => !v)}
             className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -87,7 +87,7 @@ function StudentsCardGridBody({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={he.dashboard.searchPlaceholder}
-            className="w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none sm:w-64"
           />
         </div>
       </div>

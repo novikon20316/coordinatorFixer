@@ -263,7 +263,7 @@ export function StudentCard({
       </div>
 
       {expanded && (
-        <div className="fixed inset-y-0 left-0 z-40 flex w-[460px] max-w-[90vw] flex-col overflow-y-auto border-r border-gray-200 bg-white shadow-2xl">
+        <div className="fixed inset-y-0 left-0 z-40 flex w-full flex-col overflow-y-auto border-r border-gray-200 bg-white shadow-2xl md:w-[460px] md:max-w-[90vw]">
           <div className="flex shrink-0 items-start justify-between gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3">
             <div className="min-w-0">
               <h3 className="truncate font-bold text-gray-900">{student.fullName}</h3>
@@ -400,7 +400,7 @@ export function StudentCard({
                       onChange={(e) => renameMilestone(m.key, e.target.value)}
                       onBlur={commitMilestones}
                       placeholder={he.studentCard.milestoneNamePlaceholder}
-                      className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
+                      className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-sm"
                     />
                     {/* Read-only - only ever filled by ProjectProgressSyncModal's
                         sync from organization-all-system, never typed by hand. */}
@@ -544,7 +544,7 @@ function CourseCategorySection({
               onChange={(e) => updateEntry(i, { name: e.target.value })}
               placeholder={he.studentCard.courseName}
               title={category.fixedCatalog && i < category.requiredCount ? he.studentCard.oldCurriculumNameHint : undefined}
-              className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm"
+              className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1 text-sm"
             />
             <input
               type="number"
