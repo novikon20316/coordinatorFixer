@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Candidate, cohortYearOptionLabel, he, HEBREW_YEAR_VALUES } from "@admin-coordinator/shared";
+import { Candidate, CandidateStatus, cohortYearOptionLabel, he, HEBREW_YEAR_VALUES } from "@admin-coordinator/shared";
 import { CandidatesCardGrid } from "../../../components/CandidatesCardGrid";
 import { AddCandidateBar } from "../../../components/AddCandidateBar";
 import { ImportReviewModal } from "../../../components/ImportReviewModal";
@@ -20,10 +20,14 @@ export default function CandidatesPage() {
     return unsubscribe;
   }, [faculty]);
 
-  const filteredCandidates = useMemo(
-    () => (cohortFilter ? candidates.filter((c) => c.applyingForYear === cohortFilter) : candidates),
-    [candidates, cohortFilter]
-  );
+  const filteredCandidates = useMemo(() => {
+    // This screen is a review inbox: once the coordinator decides a status
+    // (accepted/rejected/withdrawn), the candidate is resolved and moves off
+    // of it - an accepted one becomes a Student on the dashboard's own tabs
+    // instead, so nothing ends up shown in both places at once.
+    const pending = candidates.filter((c) => c.status === CandidateStatus.PENDING);
+    return cohortFilter ? pending.filter((c) => c.applyingForYear === cohortFilter) : pending;
+  }, [candidates, cohortFilter]);
 
   return (
     <div className="flex flex-col gap-6">

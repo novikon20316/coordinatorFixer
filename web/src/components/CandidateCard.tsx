@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Candidate, CandidateStatus, he } from "@admin-coordinator/shared";
+import { CANDIDATE_STATUS_VALUES, Candidate, CandidateStatus, he } from "@admin-coordinator/shared";
 import { apiFetch } from "../lib/apiClient";
 
 const STATUS_STYLES: Record<CandidateStatus, string> = {
@@ -9,6 +9,13 @@ const STATUS_STYLES: Record<CandidateStatus, string> = {
   [CandidateStatus.ACCEPTED]: "bg-green-100 text-green-800",
   [CandidateStatus.REJECTED]: "bg-red-100 text-red-800",
   [CandidateStatus.WITHDRAWN]: "bg-gray-200 text-gray-700",
+};
+
+const STATUS_BUTTON_ACTIVE_STYLES: Record<CandidateStatus, string> = {
+  [CandidateStatus.PENDING]: "bg-blue-600 text-white",
+  [CandidateStatus.ACCEPTED]: "bg-green-600 text-white",
+  [CandidateStatus.REJECTED]: "bg-red-600 text-white",
+  [CandidateStatus.WITHDRAWN]: "bg-gray-600 text-white",
 };
 
 const DECISION_VALUES: ("REGULAR" | "CONDITIONAL" | "NOT_REGULAR" | "")[] = [
@@ -37,6 +44,7 @@ export function CandidateCard({
   const [committeeNotes, setCommitteeNotes] = useState(candidate.committeeNotes ?? "");
   const [error, setError] = useState<string | null>(null);
   const [promoting, setPromoting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<CandidateStatus | null>(null);
 
   async function save(patch: Record<string, unknown>) {
     setError(null);
@@ -58,6 +66,23 @@ export function CandidateCard({
       setError(err instanceof Error ? err.message : he.common.error);
     } finally {
       setPromoting(false);
+    }
+  }
+
+  async function handleSetStatus(status: CandidateStatus) {
+    if (status === candidate.status) return;
+    // ACCEPTED keeps using the full promote flow, since that's also what
+    // creates the Student record - the other statuses are a plain PATCH.
+    if (status === CandidateStatus.ACCEPTED) {
+      await handlePromote();
+      return;
+    }
+    setUpdatingStatus(status);
+    setError(null);
+    try {
+      await save({ status });
+    } finally {
+      setUpdatingStatus(null);
     }
   }
 
@@ -177,17 +202,28 @@ export function CandidateCard({
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <div className="flex items-center justify-end border-t border-gray-100 pt-3">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3">
         {candidate.promotedStudentId ? (
           <span className="text-xs font-medium text-gray-500">{he.candidates.alreadyPromoted}</span>
         ) : (
-          <button
-            onClick={handlePromote}
-            disabled={promoting}
-            className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-          >
-            {promoting ? he.common.loading : he.candidates.promote}
-          </button>
+          CANDIDATE_STATUS_VALUES.map((status) => {
+            const isActive = status === candidate.status;
+            const isBusy = status === CandidateStatus.ACCEPTED ? promoting : updatingStatus === status;
+            return (
+              <button
+                key={status}
+                onClick={() => handleSetStatus(status)}
+                disabled={isActive || promoting || updatingStatus !== null}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold disabled:opacity-60 ${
+                  isActive
+                    ? `${STATUS_BUTTON_ACTIVE_STYLES[status]} cursor-default`
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {isBusy ? he.common.loading : he.candidateStatus[status]}
+              </button>
+            );
+          })
         )}
       </div>
         </>
