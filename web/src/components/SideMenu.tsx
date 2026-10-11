@@ -35,9 +35,9 @@ export function SideMenu() {
 
   return (
     <>
-      {/* Mobile-only top bar - the md: sidebar below replaces this entirely
-          on wider screens, where it's hidden via md:hidden. */}
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
+      {/* Mobile-only top bar - the sm: sidebar below replaces this entirely
+          on wider screens, where it's hidden via sm:hidden. */}
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 sm:hidden">
         <span className="text-lg font-bold text-blue-900">{he.app.name}</span>
         <button
           type="button"
@@ -53,24 +53,24 @@ export function SideMenu() {
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          className="fixed inset-0 z-40 bg-black/30 sm:hidden"
           onClick={() => setMobileOpen(false)}
           aria-hidden
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-200 md:static md:z-auto md:w-56 md:max-w-none md:translate-x-0 md:shrink-0 md:shadow-none ${
-          mobileOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-200 sm:static sm:z-auto sm:w-56 sm:max-w-none sm:translate-x-0 sm:shrink-0 sm:shadow-none ${
+          mobileOpen ? "translate-x-0" : "translate-x-full sm:translate-x-0"
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-6 md:justify-start">
+        <div className="flex items-center justify-between px-5 py-6 sm:justify-start">
           <span className="text-lg font-bold text-blue-900">{he.app.name}</span>
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
             aria-label={he.menu.closeMenu}
-            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 md:hidden"
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 sm:hidden"
           >
             ✕
           </button>
