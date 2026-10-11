@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="he" dir="rtl" className={`${rubik.variable} h-full overflow-x-hidden`}>
-      <body className="min-h-full overflow-x-hidden bg-gray-50 font-sans antialiased">
+    <html lang="he" dir="rtl" className={`${rubik.variable} h-full`}>
+      <body className="min-h-full bg-gray-50 font-sans antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

@@ -56,8 +56,6 @@ export const he = {
     coordinators: "ניהול רכזים",
     curriculumCorrections: "תיקוני תוכנית לימודים",
     facultyFilter: "פקולטה מוצגת",
-    openMenu: "פתיחת תפריט",
-    closeMenu: "סגירת תפריט",
   },
 
   coordinators: {
