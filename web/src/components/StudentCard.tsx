@@ -23,6 +23,7 @@ import {
   Student,
   STUDENT_STATUS_VALUES,
   StudentStatus,
+  StudentTrack,
   studentCohortYearLabel,
   syncCourseCategoriesFromHistory,
   uncategorizedAcademicCourses,
@@ -47,6 +48,7 @@ let nextMilestoneId = 0;
 export function StudentCard({
   student,
   requiredCompletionCourses = [],
+  missingCompletionCourses = [],
   needsCompletionAttention = false,
   needsActiveReviewAttention = false,
   expanded,
@@ -56,8 +58,16 @@ export function StudentCard({
   student: Student;
   /** קורסי השלמה this student's original candidate record marked as
    *  required (only when that candidate was admitted "על תנאי") - see
-   *  web/src/lib/completionCourses.ts. */
+   *  web/src/lib/completionCourses.ts. Used here only to tell whether this
+   *  student has any known completion requirement at all, so the card can
+   *  tell "nothing required" apart from "everything already done". */
   requiredCompletionCourses?: { name: string; grade?: number | string }[];
+  /** The subset of requiredCompletionCourses still without a recorded grade
+   *  - see web/src/lib/completionCourses.ts. While this student is on the
+   *  COMPLETION track (בהשלמה), this replaces the regular courseCategories
+   *  checklist below, since the מן המניין degree curriculum doesn't apply
+   *  to her yet. */
+  missingCompletionCourses?: { name: string; grade?: number | string }[];
   /** True once this (still בהשלמה) student has a recorded grade for every
    *  required קורס השלמה - see isCompletionGradingDone in
    *  web/src/lib/completionCourses.ts. Drives a persistent badge prompting
@@ -176,6 +186,12 @@ export function StudentCard({
     );
   }
 
+  // A COMPLETION-track (בהשלמה) student hasn't started the מן המניין degree
+  // yet - her card shows what's left of her own קורסי השלמה requirement
+  // (missingCompletionCourses, from her original candidate record) instead
+  // of the regular degree checklist below, which would otherwise just show
+  // every default category as entirely missing.
+  const isCompletionTrack = student.track === StudentTrack.COMPLETION;
   const complete = isCourseworkComplete(courseCategories);
   const missingCategories = courseCategories.filter((c) => !isCourseCategoryComplete(c));
   const missingMilestones = milestones.filter((m) => !m.done);
@@ -219,7 +235,7 @@ export function StudentCard({
               <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700">
                 {he.studentCard.gpaBadgeLabel}: {student.gpa || "—"}
               </span>
-              {!complete && (
+              {(isCompletionTrack ? missingCompletionCourses.length > 0 : !complete) && (
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
                   {he.studentCard.missingCoursesBadge}
                 </span>
@@ -229,7 +245,7 @@ export function StudentCard({
                   {he.studentCard.failedCourseBadge}
                 </span>
               )}
-              {creditShortfall > 0 && (
+              {!isCompletionTrack && creditShortfall > 0 && (
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-800">
                   {he.studentCard.creditShortfallBadge}: {creditShortfall}
                 </span>
@@ -295,46 +311,48 @@ export function StudentCard({
             <span className="text-[11px] text-gray-400">{he.studentCard.degreeGpaHint}</span>
           </label>
 
-          <section className="rounded-lg border border-gray-100 p-3">
-            <button
-              type="button"
-              onClick={() => setShowMissing((v) => !v)}
-              className="flex w-full items-center justify-between text-xs font-semibold text-gray-700"
-            >
-              <span>{he.studentCard.missingForCompletion}</span>
-              <span className={complete ? "text-green-700" : "text-amber-700"}>
-                {complete ? "✓" : missingCategories.length + (missingMilestones.length > 0 ? 1 : 0)}
-              </span>
-            </button>
-            {showMissing &&
-              (nothingMissing ? (
-                <p className="mt-2 text-xs text-green-700">{he.studentCard.nothingMissing}</p>
-              ) : (
-                <ul className="mt-2 flex flex-col gap-1 text-xs text-amber-800">
-                  {missingCategories.map((c) => {
-                    const passedCount = c.entries.filter((e) => e.passed).length;
-                    return (
-                      <li key={c.key}>
-                        {he.studentCard.missingCourseCategory
-                          .replace("{label}", courseCategoryLabel(c))
-                          .replace("{remaining}", String(c.requiredCount - passedCount))}
+          {!isCompletionTrack && (
+            <section className="rounded-lg border border-gray-100 p-3">
+              <button
+                type="button"
+                onClick={() => setShowMissing((v) => !v)}
+                className="flex w-full items-center justify-between text-xs font-semibold text-gray-700"
+              >
+                <span>{he.studentCard.missingForCompletion}</span>
+                <span className={complete ? "text-green-700" : "text-amber-700"}>
+                  {complete ? "✓" : missingCategories.length + (missingMilestones.length > 0 ? 1 : 0)}
+                </span>
+              </button>
+              {showMissing &&
+                (nothingMissing ? (
+                  <p className="mt-2 text-xs text-green-700">{he.studentCard.nothingMissing}</p>
+                ) : (
+                  <ul className="mt-2 flex flex-col gap-1 text-xs text-amber-800">
+                    {missingCategories.map((c) => {
+                      const passedCount = c.entries.filter((e) => e.passed).length;
+                      return (
+                        <li key={c.key}>
+                          {he.studentCard.missingCourseCategory
+                            .replace("{label}", courseCategoryLabel(c))
+                            .replace("{remaining}", String(c.requiredCount - passedCount))}
+                        </li>
+                      );
+                    })}
+                    {missingMilestones.length > 0 && (
+                      <li>
+                        {he.studentCard.missingMilestonesLabel}:{" "}
+                        {missingMilestones
+                          .map((m) => m.nameHe || m.nameEn)
+                          .filter(Boolean)
+                          .join(", ")}
                       </li>
-                    );
-                  })}
-                  {missingMilestones.length > 0 && (
-                    <li>
-                      {he.studentCard.missingMilestonesLabel}:{" "}
-                      {missingMilestones
-                        .map((m) => m.nameHe || m.nameEn)
-                        .filter(Boolean)
-                        .join(", ")}
-                    </li>
-                  )}
-                </ul>
-              ))}
-          </section>
+                    )}
+                  </ul>
+                ))}
+            </section>
+          )}
 
-          {uncategorizedCourses.length > 0 && (
+          {!isCompletionTrack && uncategorizedCourses.length > 0 && (
             <section className="rounded-lg border border-blue-200 bg-blue-50 p-3">
               <h4 className="mb-1 text-xs font-semibold text-blue-800">{he.studentCard.uncategorizedCoursesLabel}</h4>
               <p className="mb-2 text-[11px] text-blue-700">{he.studentCard.uncategorizedCoursesHint}</p>
@@ -351,13 +369,17 @@ export function StudentCard({
           {requiredCompletionCourses.length > 0 && (
             <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
               <h4 className="mb-2 text-xs font-semibold text-amber-800">{he.studentCard.requiredCompletionCourses}</h4>
-              <div className="flex flex-wrap gap-2">
-                {requiredCompletionCourses.map((c, i) => (
-                  <span key={i} className="rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-gray-800">
-                    {c.name}
-                  </span>
-                ))}
-              </div>
+              {missingCompletionCourses.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {missingCompletionCourses.map((c, i) => (
+                    <span key={i} className="rounded-md border border-amber-200 bg-white px-2 py-1 text-xs text-gray-800">
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-green-700">{he.studentCard.allCompletionCoursesDone}</p>
+              )}
             </section>
           )}
 
@@ -434,15 +456,16 @@ export function StudentCard({
             </label>
           </section>
 
-          {courseCategories.map((category) => (
-            <CourseCategorySection
-              key={category.key}
-              category={category}
-              faculty={student.faculty}
-              cohortYear={student.cohortYear}
-              onChange={(entries, requiredCount) => updateCategory(category.key, entries, requiredCount)}
-            />
-          ))}
+          {!isCompletionTrack &&
+            courseCategories.map((category) => (
+              <CourseCategorySection
+                key={category.key}
+                category={category}
+                faculty={student.faculty}
+                cohortYear={student.cohortYear}
+                onChange={(entries, requiredCount) => updateCategory(category.key, entries, requiredCount)}
+              />
+            ))}
 
           <AcademicHistorySection history={student.academicHistory} />
 
@@ -452,7 +475,8 @@ export function StudentCard({
             <button onClick={() => openDetail(student)} className="text-xs font-medium text-blue-700 hover:underline">
               {he.studentCard.moreDetails}
             </button>
-            {complete &&
+            {!isCompletionTrack &&
+              complete &&
               (showClearanceComingSoon ? (
                 <span className="text-xs font-medium text-gray-500">{he.common.comingSoon}</span>
               ) : (

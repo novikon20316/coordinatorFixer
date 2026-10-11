@@ -5,7 +5,7 @@ import { Candidate, he, isActiveCourseworkFullyDone, Student, StudentStatus } fr
 import { StudentCard } from "./StudentCard";
 import { FloatingDetailPanels } from "./FloatingDetailPanels";
 import { DetailPanelsProvider } from "../context/DetailPanelsContext";
-import { findRequiredCompletionCourses, isCompletionGradingDone } from "../lib/completionCourses";
+import { findRequiredCompletionCourses, isCompletionGradingDone, missingCompletionCourses } from "../lib/completionCourses";
 
 export function StudentsCardGrid(props: {
   students: Student[];
@@ -101,6 +101,7 @@ function StudentsCardGridBody({
               key={refreshTokens[s.id] ? `${s.id}:${refreshTokens[s.id]}` : s.id}
               student={s}
               requiredCompletionCourses={findRequiredCompletionCourses(s, candidates)}
+              missingCompletionCourses={missingCompletionCourses(s, candidates)}
               needsCompletionAttention={isCompletionGradingDone(s, candidates)}
               needsActiveReviewAttention={isActiveCourseworkFullyDone(s)}
               expanded={selectedId === s.id}

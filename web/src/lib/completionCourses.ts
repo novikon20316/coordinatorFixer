@@ -40,24 +40,40 @@ export function findRequiredCompletionCourses(
 }
 
 /**
- * True once a COMPLETION-track student has an actual recorded grade (in
- * their imported academicHistory, not the candidate record's own pre-
- * admission grade) for every one of their required קורסי השלמה - i.e. the
- * coordinator now has everything needed to decide whether to move them off
- * בהשלמה. Only `typeof grade === "number"` counts as graded, same
- * convention as hasFailingGrade/syncCourseCategoriesFromHistory in
+ * The subset of findRequiredCompletionCourses still without an actual
+ * recorded grade (in the student's imported academicHistory, not the
+ * candidate record's own pre-admission grade) - i.e. what a COMPLETION-
+ * track student still has left to do before the coordinator can move them
+ * off בהשלמה. This is what the student's card shows in place of the
+ * regular (מן המניין) course checklist, which doesn't apply to them yet.
+ * Only `typeof grade === "number"` counts as graded, same convention as
+ * hasFailingGrade/syncCourseCategoriesFromHistory in
  * shared/src/utils/studentDefaults.ts, since a handful of source files use
- * placeholder text like "טרם קיבל ציון" for a not-yet-graded course. False
- * while there are no required completion courses at all (nothing to signal).
+ * placeholder text like "טרם קיבל ציון" for a not-yet-graded course.
  */
-export function isCompletionGradingDone(student: Student, candidates: Candidate[]): boolean {
+export function missingCompletionCourses(
+  student: Student,
+  candidates: Candidate[]
+): { name: string; grade?: number | string }[] {
   const required = findRequiredCompletionCourses(student, candidates);
-  if (required.length === 0) return false;
+  if (required.length === 0) return [];
   const graded = new Set<string>();
   for (const record of student.academicHistory ?? []) {
     for (const course of record.courses) {
       if (typeof course.grade === "number") graded.add(normalizeName(course.name));
     }
   }
-  return required.every((c) => graded.has(normalizeName(c.name)));
+  return required.filter((c) => !graded.has(normalizeName(c.name)));
+}
+
+/**
+ * True once a COMPLETION-track student has an actual recorded grade for
+ * every one of their required קורסי השלמה - i.e. the coordinator now has
+ * everything needed to decide whether to move them off בהשלמה. False while
+ * there are no required completion courses at all (nothing to signal).
+ */
+export function isCompletionGradingDone(student: Student, candidates: Candidate[]): boolean {
+  const required = findRequiredCompletionCourses(student, candidates);
+  if (required.length === 0) return false;
+  return missingCompletionCourses(student, candidates).length === 0;
 }

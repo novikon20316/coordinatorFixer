@@ -202,6 +202,7 @@ export const he = {
     } as Record<"A" | "B", string>,
     notes: "הערות",
     requiredCompletionCourses: "קורסי השלמה נדרשים",
+    allCompletionCoursesDone: "כל קורסי ההשלמה הושלמו",
     moreDetails: "פרטים נוספים",
     clearanceForm: "פתיחת טופס סילוקין",
     startYear: "שנת התחלה",
