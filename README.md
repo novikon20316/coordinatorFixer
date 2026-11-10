@@ -1,74 +1,177 @@
-# מערכת רכזי הקבלה (Administrative Coordinator)
+<div align="center">
 
-Monorepo (npm workspaces) with four packages:
+# 🎓 CoordinatorFixer
 
-- **`shared`** — TypeScript types, status/track/role enums, and the Hebrew (`he`) label dictionary used by both the server and clients. Additional languages get added here later as sibling dictionaries.
-- **`server`** — Express + TypeScript REST API. Verifies Firebase Auth ID tokens, reads/writes Firestore, enforces the admin/coordinator role split.
-- **`web`** — Next.js (App Router) website, RTL Hebrew UI, server-side rendering.
-- **`mobile`** — Expo (React Native + TypeScript) app for iOS and Android, RTL Hebrew UI.
-- **`firebase`** — `firestore.rules` (deny-all client writes; see [SECURITY.md](SECURITY.md)) and `firestore.indexes.json`.
+### מערכת רכזי הקבלה — The Admissions Coordinator System
 
-See [SECURITY.md](SECURITY.md) for the full access-control model and a checklist to run through before this holds real student data.
+**One simple place for college coordinators to track every student applicant — on the web and on your phone.**
 
-## Status
+![Web](https://img.shields.io/badge/Web-Next.js-black?logo=next.js)
+![Mobile](https://img.shields.io/badge/Mobile-iOS%20%26%20Android-blue?logo=expo)
+![Backend](https://img.shields.io/badge/Server-Express-green?logo=express)
+![Database](https://img.shields.io/badge/Data-Firebase-orange?logo=firebase)
+![Language](https://img.shields.io/badge/UI-Hebrew%20(RTL)-lightgrey)
 
-Linked to the `coordinatorfixer` Firebase project (Firestore in `me-west1`, delete protection on). Local `.env` files for `server`/`web`/`mobile` are already populated (gitignored - see `*.env.example` in each package if you need to regenerate them). Email/Password sign-in is enabled and the `system_admin` account (`dor.novik15@gmail.com`) is bootstrapped - see `server/scripts/bootstrap-admin.ts` if a project ever needs a fresh admin.
+</div>
 
-## Google & Apple sign-in
+---
 
-The login screen has "המשך עם Google" / "המשך עם Apple" buttons and the client-side code (web + mobile) is fully wired up, but each provider needs one manual step in a console before it actually works - neither is scriptable via the Firebase/Google Cloud CLI:
+## 🤔 What is this?
 
-1. **Google** - Firebase Console → Authentication → Sign-in method → enable **Google**. This auto-creates an OAuth "Web client" for the project.
-   - Web needs nothing further - Firebase's `signInWithPopup` picks it up automatically.
-   - Mobile needs that Web client's ID: Firebase Console → Authentication → Sign-in method → Google → "Web SDK configuration" → copy the Web client ID → set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `mobile/.env`.
-2. **Apple** (iOS only) - needs an Apple Developer Program membership ($99/year), which only you can set up. The app's bundle identifier is `com.coordinatorfixer.app` (`mobile/app.json` - change it now if you'd rather use something else, since it's effectively permanent once you first submit to the App Store).
+Imagine a college office with piles of student applications. Who applied? Who got accepted? Who dropped out?
 
-   At [developer.apple.com/account](https://developer.apple.com/account), under **Certificates, Identifiers & Profiles**:
-   1. **Identifiers → "+" → App IDs** - register `com.coordinatorfixer.app` (if it's not there yet from a prior EAS run) and check the **Sign In with Apple** capability on it, "Enable as a primary App ID".
-   2. **Identifiers → "+" → Services IDs** - create one, e.g. identifier `com.coordinatorfixer.app.web`, description "CoordinatorFixer". Enable **Sign In with Apple** on it, click Configure, and set the domain/return URL to *exactly* what Firebase shows you in the next step (do that step first if the Services ID form is open in another tab, so you have the real URL instead of guessing).
-   3. **Keys → "+"** - name it, enable **Sign In with Apple**, associate it with the App ID from step 1, register, then **download the `.p8` file immediately** - Apple only lets you download it once. Note the **Key ID** shown on this page.
-   4. Your **Team ID** is on the account's Membership page (top-right area, or Membership Details) - a 10-character code.
-   - Then: Firebase Console → Authentication → Sign-in method → enable **Apple**, and fill in the Services ID (from step 2), Team ID, Key ID, and upload the `.p8` file (all from above). Firebase shows the exact OAuth redirect URL to use in step 2 right on this screen.
-   - `mobile/app.json` already sets `ios.usesAppleSignIn: true` and the `expo-apple-authentication` plugin - but that native module (and therefore testing the Apple button on a phone) requires an EAS/custom dev-client build, not plain Expo Go: `npx eas build --platform ios --profile development` (needs an Expo account, `eas-cli`, and this same Apple Developer membership - EAS will prompt to create/select the matching provisioning profile).
-   - The web app's Apple button works via `signInWithPopup` once the Firebase provider above is configured - no EAS/native build needed for web.
+**CoordinatorFixer answers all of that in one screen.** Coordinators log in, see their students, and update each student's status with a click.
 
-Either provider signing a user in who has no `users/{uid}` Firestore profile (i.e. an admin never created their account) is handled - they see a clear "not registered" screen instead of a broken dashboard, since Firestore rules already deny them read access to everything.
+That's it. No spreadsheets. No lost papers.
 
-## Domain model
+---
 
-A **student** record belongs to a **faculty** (the dashboard itself only handles `data_science` for now, though coordinators can belong to any of the college's 7 real faculties - see below) and a **track**:
+## ✨ What can it do?
 
-| Track key    | Hebrew label     |
-|--------------|-------------------|
-| `REGULAR`    | מן המניין          |
-| `COMPLETION` | בהשלמה             |
+| | Feature | In plain words |
+|---|---|---|
+| 📊 | **Dashboard** | See all your students at a glance |
+| 🙋 | **Candidates** | Review new applicants and accept or reject them |
+| 🔄 | **Change status** | Move a student from "applied" to "studying" (or anything else) |
+| 📚 | **Curriculum corrections** | See which courses a student still needs to complete |
+| 🕓 | **History** | See who changed what, and when |
+| 📈 | **Reports** | Get summaries and numbers |
+| 👥 | **Manage coordinators** | The admin adds, assigns, or disables coordinators |
+| 🔐 | **Secure login** | Email & password or Google (Apple coming later) |
 
-Each student has a **status**:
+---
 
-| Status key   | Hebrew label                 | Meaning |
-|--------------|-------------------------------|---------|
-| `ACTIVE`     | פעיל                           | Student has started studying at the college |
-| `REGISTERED` | נרשם                           | Currently under review by the acceptance committee |
-| `REJECTED`   | לא התקבל                       | GPA below 85, or no relevant background |
-| `CANCELED`   | בוטל על ידי התלמיד              | Student withdrew, or the coordinator canceled the application |
+## 🚦 Student statuses — explained like you're five
 
-Roles: **admin** (single system owner) and **coordinator** (everyone else, each assigned to one faculty). Role and faculty are stored server-side in the `users` Firestore collection and never trusted from the client. The admin manages coordinator accounts from the "ניהול רכזים" screen (web: `/coordinators`, mobile: same menu item) - creates the account, assigns its faculty, and can disable it later without deleting it.
+Every student is in exactly **one** of these boxes:
 
-## Getting started
+| Status | Hebrew | What it means |
+|---|---|---|
+| 🟡 **Registered** | נרשם | Applied — waiting for the committee to decide |
+| 🟢 **Active** | פעיל | Accepted and studying 🎉 |
+| 🔴 **Rejected** | לא התקבל | Not accepted (GPA under 85, or no relevant background) |
+| ⚪ **Canceled** | בוטל על ידי התלמיד | The student (or coordinator) withdrew the application |
+
+And every student is on one of two **tracks**:
+
+- **Regular** (מן המניין) — a normal degree
+- **Completion** (בהשלמה) — finishing a degree with some missing courses
+
+---
+
+## 👤 Who uses it?
+
+- 👑 **Admin** — the one boss. Creates coordinator accounts and decides which faculty each one handles.
+- 🧑‍💼 **Coordinator** — everyone else. Works only with the students in **their own** faculty.
+
+> 🔒 Nobody can pretend to be an admin — roles are checked on the server, never trusted from the browser or phone.
+
+---
+
+## 🚀 How do I run it on my computer?
+
+**You need:** [Node.js](https://nodejs.org) installed. That's all.
+
+**Step 1 — Download the stuff it needs** (only once):
 
 ```bash
 npm install
 ```
 
+**Step 2 — Start the part you want** (each in its own terminal window):
+
 ```bash
-# Server (http://localhost:4000)
 npm run dev:server
+```
 
-# Website (http://localhost:3000)
+```bash
 npm run dev:web
+```
 
-# Mobile (Expo dev server)
+```bash
 npm run dev:mobile
 ```
 
-`server/.env`, `web/.env.local`, and `mobile/.env` already hold real `coordinatorfixer` credentials (gitignored - each package's `.env*.example` shows the shape if you ever need to regenerate them, e.g. after rotating the service account key).
+**Step 3 — Open it:**
+
+| What | Where |
+|---|---|
+| 🌐 Website | http://localhost:3000 |
+| ⚙️ Server | http://localhost:4000 |
+| 📱 Phone app | Scan the QR code that appears with the **Expo Go** app |
+
+> 💡 The website and phone app need the server running to work. Start the server first.
+
+> 🔑 You'll also need the secret `.env` files (they are **not** on GitHub, on purpose). Each folder has an `.env.example` showing what goes inside. Ask the project owner for the real values.
+
+---
+
+## 🗂️ What's in this folder?
+
+```
+📁 server/    → The brain. Checks who you are and talks to the database.
+📁 web/       → The website you see in your browser.
+📁 mobile/    → The phone app (iPhone + Android).
+📁 shared/    → Stuff both the website and app use (labels, types, Hebrew text).
+📁 firebase/  → Database security rules.
+```
+
+---
+
+## 🛡️ Security
+
+Student data is private. Read **[SECURITY.md](SECURITY.md)** to see how access is protected and what to check before using real student data.
+
+---
+
+<details>
+<summary><b>🛠️ For developers: technical details (click to open)</b></summary>
+
+### Tech stack
+
+- **`shared`** — TypeScript types, status/track/role enums, and the Hebrew (`he`) label dictionary used by server and clients. More languages can be added as sibling dictionaries.
+- **`server`** — Express + TypeScript REST API. Verifies Firebase Auth ID tokens, reads/writes Firestore, enforces the admin/coordinator split.
+- **`web`** — Next.js (App Router), RTL Hebrew UI, server-side rendering.
+- **`mobile`** — Expo (React Native + TypeScript) for iOS and Android, RTL Hebrew UI.
+- **`firebase`** — `firestore.rules` (deny-all client writes) and `firestore.indexes.json`.
+
+### Firebase project
+
+Linked to the `coordinatorfixer` Firebase project (Firestore in `me-west1`, delete protection on). Email/Password sign-in is enabled and a `system_admin` account is bootstrapped — see `server/scripts/bootstrap-admin.ts` to create a fresh admin.
+
+Env files (gitignored): `server/.env`, `web/.env.local`, `mobile/.env`. Each package's `*.env.example` shows the shape.
+
+### Data model
+
+- A **student** belongs to a **faculty** (the dashboard currently handles `data_science`; coordinators can belong to any of the college's 7 faculties) and a **track** (`REGULAR` / `COMPLETION`).
+- **Status** keys: `ACTIVE`, `REGISTERED`, `REJECTED`, `CANCELED`.
+- **Roles** (`admin`, `coordinator`) and faculty live in the `users` Firestore collection, server-side only.
+- A user who signs in without a `users/{uid}` profile sees a clear "not registered" screen.
+
+### Google sign-in setup
+
+1. Firebase Console → Authentication → Sign-in method → enable **Google** (auto-creates an OAuth Web client).
+2. Web: nothing else needed (`signInWithPopup`).
+3. Mobile: copy the Web client ID from "Web SDK configuration" into `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `mobile/.env`.
+
+### Apple sign-in setup (on hold)
+
+Requires an Apple Developer Program membership ($99/year). Bundle ID: `com.coordinatorfixer.app` (`mobile/app.json`).
+
+1. **App ID** — register `com.coordinatorfixer.app` with the **Sign In with Apple** capability (primary App ID).
+2. **Services ID** — e.g. `com.coordinatorfixer.app.web`, enable Sign In with Apple, set the domain/return URL to exactly what Firebase shows.
+3. **Key** — enable Sign In with Apple, link to the App ID, **download the `.p8` immediately** (one-time), note the Key ID.
+4. **Team ID** — on the Apple account's Membership page.
+5. Firebase Console → enable **Apple**, fill in Services ID, Team ID, Key ID, upload the `.p8`.
+
+Testing on iOS needs an EAS dev build (not Expo Go): `npx eas build --platform ios --profile development`. The web Apple button works once the Firebase provider is configured.
+
+</details>
+
+---
+
+<div align="center">
+
+Made with ❤️ for HIT admissions coordinators
+
+</div>
